@@ -1,0 +1,6233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="网易云音乐热门歌单数据分析可视化报告">
+    <title>🎵 网易云音乐数据分析报告</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2/dist/echarts-wordcloud.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-color: #10b981;
+            --card-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --card-shadow-hover: 0 8px 30px rgba(0,0,0,0.12);
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 24px;
+            line-height: 1.6;
+        }
+        
+        .main-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 现代化头部 */
+        .modern-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 48px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .modern-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 15s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(180deg); }
+        }
+        
+        .modern-header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.5px;
+        }
+        
+        .modern-header p {
+            font-size: 16px;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 统计卡片网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            padding: 40px;
+            background: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 28px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            border: 1px solid #f0f0f0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--card-shadow-hover);
+        }
+        
+        .stat-card .icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 12px 0;
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* 现代化导航栏 */
+        .sidebar-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        }
+        
+        .nav-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            padding: 20px 40px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .nav-item {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #495057;
+            border: 2px solid transparent;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: var(--transition);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .nav-item:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            border-color: #667eea;
+        }
+        
+        .nav-item.active {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 24px rgba(102, 126, 234, 0.5);
+            border-color: #764ba2;
+        }
+        
+        /* 内容区域 - 充分利用空间 */
+        .content-area {
+            padding: 40px;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .page-section {
+            display: none;
+            animation: fadeInUp 0.5s ease-out;
+            width: 100%;
+        }
+        
+        .page-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 40px;
+            margin-bottom: 32px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            border: 1px solid #f0f0f0;
+            width: 100%;
+        }
+        
+        .chart-card:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+        
+        .chart-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #f3f4f6;
+        }
+        
+        .chart-header .icon {
+            font-size: 32px;
+        }
+        
+        .chart-header h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
+            flex-grow: 1;
+        }
+        
+        /* 图表容器 - 确保图表充分展开 */
+        .chart-card > div {
+            width: 100% !important;
+            min-height: 650px !important;
+        }
+        
+        .chart-card > div > div {
+            width: 100% !important;
+            height: 650px !important;
+        }
+        
+        /* ECharts容器优化 */
+        div[_echarts_instance_] {
+            width: 100% !important;
+            height: 650px !important;
+        }
+        
+        /* 强制图表容器展开 */
+        [id^="chart"] {
+            width: 100% !important;
+            height: 650px !important;
+        }
+        
+        /* Canvas元素优化 */
+        .chart-card canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+        
+        /* 页脚 */
+        .modern-footer {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .modern-footer p {
+            margin: 8px 0;
+            opacity: 0.9;
+        }
+        
+        /* 返回顶部按钮 */
+        .back-top-btn {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 56px;
+            height: 56px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            transition: var(--transition);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 1001;
+        }
+        
+        .back-top-btn.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-top-btn:hover {
+            transform: translateY(-8px) scale(1.1);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+        }
+        
+        /* 主题切换按钮 */
+        .theme-toggle {
+            position: fixed;
+            top: 32px;
+            right: 32px;
+            width: 56px;
+            height: 56px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transition: var(--transition);
+            z-index: 1002;
+        }
+        
+        .theme-toggle:hover {
+            transform: rotate(180deg) scale(1.1);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .nav-container {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 8px;
+                padding: 16px 24px;
+            }
+            
+            .nav-item {
+                font-size: 12px;
+                padding: 12px 16px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            
+            .main-container {
+                border-radius: 16px;
+            }
+            
+            .modern-header {
+                padding: 32px 24px;
+            }
+            
+            .modern-header h1 {
+                font-size: 28px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                gap: 16px;
+                padding: 24px;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+            
+            .stat-card .value {
+                font-size: 28px;
+            }
+            
+            .content-area {
+                padding: 20px;
+            }
+            
+            .chart-card {
+                padding: 24px;
+            }
+            
+            .nav-container {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 6px;
+                padding: 12px 16px;
+            }
+            
+            .nav-item {
+                padding: 10px 12px;
+                font-size: 11px;
+            }
+        }
+        
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 概览页面样式 */
+        .overview-content {
+            padding: 24px;
+            line-height: 1.8;
+        }
+        
+        .overview-content h3 {
+            color: #667eea;
+            margin: 32px 0 16px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .overview-content h3:first-child {
+            margin-top: 0;
+        }
+        
+        .overview-content p {
+            margin: 12px 0;
+            color: #4b5563;
+        }
+        
+        .overview-content strong {
+            color: #111827;
+            font-weight: 600;
+        }
+        </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- 头部 -->
+        <div class="modern-header">
+            <h1>🎵 网易云音乐数据分析报告</h1>
+            <p>NetEase Cloud Music Data Analysis Report</p>
+            <p style="margin-top: 12px; font-size: 14px;">生成时间: 2025-11-11 11:32:02</p>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            
+            <div class="stat-card">
+                <div class="icon">📊</div>
+                <div class="value">685</div>
+                <div class="label">总歌单数</div>
+            </div>
+            
+
+            <div class="stat-card">
+                <div class="icon">🎵</div>
+                <div class="value">45,633</div>
+                <div class="label">总歌曲数</div>
+            </div>
+            
+
+            <div class="stat-card">
+                <div class="icon">🎤</div>
+                <div class="value">15,155</div>
+                <div class="label">歌手数量</div>
+            </div>
+            
+
+            <div class="stat-card">
+                <div class="icon">💿</div>
+                <div class="value">22,084</div>
+                <div class="label">专辑数量</div>
+            </div>
+            
+
+            <div class="stat-card">
+                <div class="icon">🔥</div>
+                <div class="value">84.8</div>
+                <div class="label">平均热度</div>
+            </div>
+            
+
+            <div class="stat-card">
+                <div class="icon">⭐</div>
+                <div class="value">28,401</div>
+                <div class="label">唯一歌曲</div>
+            </div>
+            
+
+            <div class="stat-card">
+                <div class="icon">👥</div>
+                <div class="value">23.0亿</div>
+                <div class="label">总播放量</div>
+            </div>
+            
+
+            <div class="stat-card">
+                <div class="icon">💖</div>
+                <div class="value">3.0千万</div>
+                <div class="label">总收藏数</div>
+            </div>
+            
+        </div>
+        
+        <!-- 导航栏 -->
+        <div class="sidebar-nav">
+            <div class="nav-container">
+                <button class="nav-item active" onclick="navigateTo(0)" title="📋 概览">📋 概览</button>
+<button class="nav-item" onclick="navigateTo(1)" title="🏆 播放量排行">🏆 播放榜</button>
+<button class="nav-item" onclick="navigateTo(2)" title="⭐ 收藏数排行">⭐ 收藏榜</button>
+<button class="nav-item" onclick="navigateTo(3)" title="📊 对比分析">📊 对比</button>
+<button class="nav-item" onclick="navigateTo(4)" title="🏷️ 标签分布">🏷️ 标签</button>
+<button class="nav-item" onclick="navigateTo(5)" title="👥 创建者排行">👥 创建者</button>
+<button class="nav-item" onclick="navigateTo(6)" title="💫 关系分析">💫 关系</button>
+<button class="nav-item" onclick="navigateTo(7)" title="📦 规模分布">📦 规模</button>
+<button class="nav-item" onclick="navigateTo(8)" title="☁️ 标签词云">☁️ 词云</button>
+<button class="nav-item" onclick="navigateTo(9)" title="🎵 热门歌曲">🎵 热歌</button>
+<button class="nav-item" onclick="navigateTo(10)" title="🎤 歌手排行">🎤 歌手</button>
+<button class="nav-item" onclick="navigateTo(11)" title="⏱️ 时长分布">⏱️ 时长</button>
+<button class="nav-item" onclick="navigateTo(12)" title="🔥 跨歌单热歌">🔥 热门</button>
+<button class="nav-item" onclick="navigateTo(13)" title="💿 专辑热度">💿 专辑</button>
+<button class="nav-item" onclick="navigateTo(14)" title="📊 热度分布">📈 热度</button>
+<button class="nav-item" onclick="navigateTo(15)" title="🌟 歌手雷达">🌟 雷达</button>
+            </div>
+        </div>
+        
+        <!-- 内容区域 -->
+        <div class="content-area">
+            <!-- 概览页 -->
+            <div class="page-section active" id="page-0">
+                
+        <div class="chart-card">
+            <div class="chart-header">
+                <span class="icon">📋</span>
+                <h3>数据概览</h3>
+            </div>
+            <div class="overview-content">
+                <h3>📊 报告说明</h3>
+                <p>• 本报告基于网易云音乐热门歌单数据生成</p>
+                <p>• 共采集 <strong>685</strong> 个歌单，<strong>45,633</strong> 首歌曲</p>
+                <p>• 包含 <strong>28,401</strong> 首唯一歌曲，<strong>15,155</strong> 位歌手</p>
+                <p>• 数据维度包括：播放量、收藏数、标签、创建者、歌曲热度等</p>
+                
+                <h3>📈 图表导航</h3>
+                <p><strong>歌单分析：</strong>包含播放排行、收藏排行、标签分布、创建者贡献等维度</p>
+                <p><strong>歌曲分析：</strong>包含热门歌曲、歌手排行、时长分布、热度分析等维度</p>
+                
+                <h3>💡 使用提示</h3>
+                <p>• 使用顶部导航按钮切换不同图表</p>
+                <p>• 所有图表支持鼠标悬停查看详细数据</p>
+                <p>• 支持键盘左右箭头键快速切换页面</p>
+                <p>• 建议使用Chrome、Edge等现代浏览器浏览</p>
+            </div>
+        </div>
+        
+            </div>
+            
+            <!-- 图表页 -->
+            
+            <div class="page-section" id="page-1">
+                <div class="chart-card">
+                    <div id="85679abced9c4f31b47f7b5f984bd568" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_85679abced9c4f31b47f7b5f984bd568 = echarts.init(
+            document.getElementById('85679abced9c4f31b47f7b5f984bd568'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_85679abced9c4f31b47f7b5f984bd568 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u64ad\u653e\u91cf",
+            "legendHoverLink": true,
+            "data": [
+                322489984,
+                195594992,
+                153946656,
+                123514336,
+                91757880,
+                62492144,
+                60665380,
+                43994488,
+                35083672,
+                33612576,
+                33597484,
+                30539572,
+                30515466,
+                30370028,
+                29643104,
+                29263228,
+                27916616,
+                23343874,
+                21771110,
+                21729980,
+                21325610,
+                20037268,
+                19788720,
+                18851724,
+                18751704,
+                18401406,
+                18134118,
+                18015788,
+                17112220,
+                16709766
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#5470c6"
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u64ad\u653e\u91cf"
+            ],
+            "selected": {},
+            "show": true,
+            "top": "8%",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "rotate": 45,
+                "margin": 8,
+                "interval": 0,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "\u7ecf\u5178\u8001\u6b4c\uff0c\u4e45\u542c\u4e0d\u538c",
+                "\u90a3\u4e9b\u53ea\u542c\u524d\u594f\u5c31\u4e2d\u6bd2\u7684\u82f1\u6587\u6b4c",
+                "\u8bc4\u8bba\u8fc7\u4e07\u7684\u82f1\u6587\u6b4c\u4e0e\u6f5c\u529b\u80a1",
+                "\u90a3\u4e9b\u4f60\u719f\u6089\u5374\u53c8\u4e0d\u77e5\u9053\u540d\u5b57\u7684\u8f7b\u97f3\u4e50",
+                "\u6df1\u5ea6\u7761\u7720 |\u91cd\u5ea6\u5931\u7720\u8005\u4e13\u7528\u6b4c\u5355",
+                "\u3016\u552f\u7f8e\u7eaf\u97f3\u3017\u4e0d\u9700\u8981\u6b4c\u8bcd,\u4e5f\u53ef\u4ee5\u6253\u52a8\u4f60...",
+                "100\u9996\u534e\u8bed\u6c11\u8c23\uff0c\u56e0\u4e3a\u61c2\u5f97\u624d\u6709\u5171\u9e23",
+                "\u7ca4\u8bed\u5973\u58f0\uff1a\u6c38\u8fdc\u5fc3\u4eea",
+                "\u53e4\u5178\u6e05\u9999 I \u6211\u7684\u8336\u9986\u91cc\u4f4f\u7740\u5df4\u8d6b\u4e0e\u8096...",
+                "\u4e0d\u5f97\u4e86\uff01\u8fd9\u4e9b\u82f1\u6587\u6b4c\u7684\u70ed\u8bc4\u4fe1\u606f\u91cf\u597d\u5927\u2026...",
+                "\u3010\u6c11\u8c23\u76db\u5bb4\u3011100\u9996\u5fc5\u542c\u6b27\u7f8e\u6c11\u8c23",
+                "\u534e\u8bed\u6c11\u8c23 I \u5b64\u72ec\u7684\u5fc3\u8be0\u91ca\u8bd7\u610f\u548c\u8fdc\u65b9",
+                "\u300e\u66f2\u4f5c\u7cbe\u9009\u300f\u7ec6\u6570\u53e4\u98ce\u5708\u539f\u521b\u4f5c\u66f2\u4eba\u2776",
+                "\u52a9\u7720\u8f91 | \u81ea\u7136\u97f3\uff0c\u4f34\u7075\u52a8\u4e50\u7b26\u8426\u7ed5\u8033...",
+                "\u7535\u5b50\u00b7\u4e2d\u56fd\u98ce I \u611f\u53d7\u89d2\u5fb5\u5bab\u5546\u7684\u8361\u6c14...",
+                "\u65e5\u672c\u4eba\u6c14\u5531\u89c1\uff0c\u6bcf\u4eba\u4e00\u9996\u826f\u66f2",
+                "\u300e\u56fd\u6447\u300f\u4e00\u767e\u652f\u4e50\u961f\u4e00\u767e\u79cd\u7cbe\u795e\u4fe1\u4ef0",
+                "\u534e\u8bed\u7ecf\u5178\u00a0|\u00a0\u90a3\u4e9b\u5c5e\u4e8e\u6211\u4eec\u9752\u6625\u7684\u4e00\u9996...",
+                "\u503e\u542c\u81ea\u7136 \u00b7 \u6d77\u4e4b\u9050\u60f3",
+                "\u3010\u65e5\u7cfb\u7eaf\u97f3\u5411\u3011\u590f\u6811\u7720 \u8749\u5728\u53eb \u4eba\u574f\u6389...",
+                "\u300c\u540e\u6447\u300d\u4e00\u53ea\u5b64\u72ec\u7684\u5de8\u517d\u5728\u6df1\u6d77\u91cc\u547c\u558a",
+                "\u60f3\u5f00\u5bb6\u8336\u9986\uff0c\u653e\u9996\u6c11\u8c23\u7ed9\u4ece\u524d",
+                "\u3010\u7edd\u7f8e\u4eba\u58f0+\u5b8c\u7f8e\u7535\u97f3\u3011\uff0c\u89e6\u7535\u8282\u594f\u4e00\u79d2...",
+                "\u4e16\u754c\u9876\u7ea7\u6c99\u53d1\u9152\u5427\u97f3\u4e50\u3002",
+                "\u56fd\u98ce\u6c11\u8c23 |\u6ee1\u5802\u82b1\u9189\u4e09\u5343\u5ba2\uff0c\u4e00\u5251\u971c\u5bd2...",
+                "100\u4f4d\u6b27\u7f8e90\u540e\u6b4c\u624b\uff1a\u4ed6\u4eec\u628a\u9752\u6625\u7ed9...",
+                "KPOP\u968f\u821e | \u8fd9\u8c01\u80fd\u5fcd\u4f4f\u4e0d\u8ddf\u8df3",
+                "\u725b\u63b0\u7684\u4eba\u662f\u8fd9\u6837\u62c9\u5c0f\u63d0\u7434\u7684\uff01",
+                "\u7535\u5f71\u4e2d\u7684\u94a2\u7434\u66f2\uff5c\u6700\u4f1a\u8bb2\u6545\u4e8b\u00b2",
+                "\u3010\u6bd2\u3011\u5f00\u53e3\u6c89\u9189\uff0c\u8ff7\u5931\u4e8e\u8fd9\u5973\u58f0"
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "name": "\u64ad\u653e\u91cf",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83c\udfc6 TOP30 \u70ed\u95e8\u6b4c\u5355\u64ad\u653e\u91cf\u6392\u884c",
+            "target": "blank",
+            "subtarget": "blank",
+            "left": "center",
+            "top": "2%",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "dataZoom": [
+        {
+            "show": true,
+            "type": "slider",
+            "showDetail": true,
+            "showDataShadow": true,
+            "realtime": true,
+            "start": 20,
+            "end": 60,
+            "orient": "horizontal",
+            "zoomLock": false,
+            "filterMode": "filter"
+        }
+    ]
+};
+        chart_85679abced9c4f31b47f7b5f984bd568.setOption(option_85679abced9c4f31b47f7b5f984bd568);
+            window.addEventListener('resize', function(){
+                chart_85679abced9c4f31b47f7b5f984bd568.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-2">
+                <div class="chart-card">
+                    <div id="9f5c0c8131b74f37912a6a5e2132d19f" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_9f5c0c8131b74f37912a6a5e2132d19f = echarts.init(
+            document.getElementById('9f5c0c8131b74f37912a6a5e2132d19f'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_9f5c0c8131b74f37912a6a5e2132d19f = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u6536\u85cf\u6570",
+            "legendHoverLink": true,
+            "data": [
+                3829400,
+                3461073,
+                2639709,
+                2445534,
+                1710406,
+                1005646,
+                822518,
+                730012,
+                729781,
+                686898,
+                605071,
+                538371,
+                535080,
+                517662,
+                491834,
+                485028,
+                424556,
+                420341,
+                399210,
+                354299,
+                353356,
+                342535,
+                322921,
+                319091,
+                318245,
+                313893,
+                306702,
+                305530,
+                278603,
+                277856
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#5470c6"
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u6536\u85cf\u6570"
+            ],
+            "selected": {},
+            "show": true,
+            "top": "8%",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "rotate": 45,
+                "margin": 8,
+                "interval": 0,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "\u90a3\u4e9b\u53ea\u542c\u524d\u594f\u5c31\u4e2d\u6bd2\u7684\u82f1\u6587\u6b4c",
+                "\u7ecf\u5178\u8001\u6b4c\uff0c\u4e45\u542c\u4e0d\u538c",
+                "\u90a3\u4e9b\u4f60\u719f\u6089\u5374\u53c8\u4e0d\u77e5\u9053\u540d\u5b57\u7684\u8f7b\u97f3\u4e50",
+                "\u8bc4\u8bba\u8fc7\u4e07\u7684\u82f1\u6587\u6b4c\u4e0e\u6f5c\u529b\u80a1",
+                "\u3016\u552f\u7f8e\u7eaf\u97f3\u3017\u4e0d\u9700\u8981\u6b4c\u8bcd,\u4e5f\u53ef\u4ee5\u6253\u52a8\u4f60...",
+                "\u6df1\u5ea6\u7761\u7720 |\u91cd\u5ea6\u5931\u7720\u8005\u4e13\u7528\u6b4c\u5355",
+                "\u65e5\u672c\u4eba\u6c14\u5531\u89c1\uff0c\u6bcf\u4eba\u4e00\u9996\u826f\u66f2",
+                "\u7535\u5b50\u00b7\u4e2d\u56fd\u98ce I \u611f\u53d7\u89d2\u5fb5\u5bab\u5546\u7684\u8361\u6c14...",
+                "\u3010\u65e5\u7cfb\u7eaf\u97f3\u5411\u3011\u590f\u6811\u7720 \u8749\u5728\u53eb \u4eba\u574f\u6389...",
+                "\u300e\u66f2\u4f5c\u7cbe\u9009\u300f\u7ec6\u6570\u53e4\u98ce\u5708\u539f\u521b\u4f5c\u66f2\u4eba\u2776",
+                "\u3010\u6c11\u8c23\u76db\u5bb4\u3011100\u9996\u5fc5\u542c\u6b27\u7f8e\u6c11\u8c23",
+                "\u53e4\u5178\u6e05\u9999 I \u6211\u7684\u8336\u9986\u91cc\u4f4f\u7740\u5df4\u8d6b\u4e0e\u8096...",
+                "\u4e0d\u5f97\u4e86\uff01\u8fd9\u4e9b\u82f1\u6587\u6b4c\u7684\u70ed\u8bc4\u4fe1\u606f\u91cf\u597d\u5927\u2026...",
+                "100\u9996\u534e\u8bed\u6c11\u8c23\uff0c\u56e0\u4e3a\u61c2\u5f97\u624d\u6709\u5171\u9e23",
+                "\u52a9\u7720\u8f91 | \u81ea\u7136\u97f3\uff0c\u4f34\u7075\u52a8\u4e50\u7b26\u8426\u7ed5\u8033...",
+                "\u300c\u9020\u8bed\u6b4c\u300d\u7a7f\u900f\u7075\u9b42 \u5982\u5531\u8bd7\u822c\u7a7a\u7075\u552f\u7f8e...",
+                "\u503e\u542c\u81ea\u7136 \u00b7 \u6d77\u4e4b\u9050\u60f3",
+                "\u725b\u63b0\u7684\u4eba\u662f\u8fd9\u6837\u62c9\u5c0f\u63d0\u7434\u7684\uff01",
+                "\u53e4\u5178\uff5c\u4ece\u5df4\u6d1b\u514b\u5230\u6d6a\u6f2b\u7684\u4f60\uff0c\u6e29\u67d4\u7ef5\u957f\u3002",
+                "\u300c\u540e\u6447\u300d\u4e00\u53ea\u5b64\u72ec\u7684\u5de8\u517d\u5728\u6df1\u6d77\u91cc\u547c\u558a",
+                "\u7ca4\u8bed\u5973\u58f0\uff1a\u6c38\u8fdc\u5fc3\u4eea",
+                "\uff3b\u81ea\u7136\u7eaa\uff3d\u751f\u547d\u4e4b\u5f8b\uff5c\u5927\u81ea\u7136\u7684\u8bed\u8a00",
+                "\u300e\u56fd\u6447\u300f\u4e00\u767e\u652f\u4e50\u961f\u4e00\u767e\u79cd\u7cbe\u795e\u4fe1\u4ef0",
+                "\u6781\u7b80\u4e3b\u4e49 | \u542c\u89c1\u3002\u5373\u8bd7\u3002",
+                "\u300e\u5c0f\u9152\u9986\u300f\u5251\u4e0e\u9b54\u6cd5 \u00b7 \u65c5\u9014\u4e2d\u7684\u4f11\u61a9...",
+                "\u3010\u6bd2\u3011\u5f00\u53e3\u6c89\u9189\uff0c\u8ff7\u5931\u4e8e\u8fd9\u5973\u58f0",
+                "\u4e16\u754c\u9876\u7ea7\u6c99\u53d1\u9152\u5427\u97f3\u4e50\u3002",
+                "\u7535\u5f71\u4e2d\u7684\u94a2\u7434\u66f2\uff5c\u6700\u4f1a\u8bb2\u6545\u4e8b\u00b2",
+                "\u56fd\u98ce\u6c11\u8c23 |\u6ee1\u5802\u82b1\u9189\u4e09\u5343\u5ba2\uff0c\u4e00\u5251\u971c\u5bd2...",
+                "\u548c\u98ce\uff5c\u7269\u54c0\uff0c\u5982\u5f97\u5176\u60c5\uff0c\u5219\u54c0\u77dc\u800c\u52ff\u559c"
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "name": "\u6536\u85cf\u6570",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83c\udfc6 TOP30 \u70ed\u95e8\u6b4c\u5355\u6536\u85cf\u6570\u6392\u884c",
+            "target": "blank",
+            "subtarget": "blank",
+            "left": "center",
+            "top": "2%",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "dataZoom": [
+        {
+            "show": true,
+            "type": "slider",
+            "showDetail": true,
+            "showDataShadow": true,
+            "realtime": true,
+            "start": 20,
+            "end": 60,
+            "orient": "horizontal",
+            "zoomLock": false,
+            "filterMode": "filter"
+        }
+    ]
+};
+        chart_9f5c0c8131b74f37912a6a5e2132d19f.setOption(option_9f5c0c8131b74f37912a6a5e2132d19f);
+            window.addEventListener('resize', function(){
+                chart_9f5c0c8131b74f37912a6a5e2132d19f.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-3">
+                <div class="chart-card">
+                    <div id="367b3b260755419a8f5856da9ec1bc8f" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_367b3b260755419a8f5856da9ec1bc8f = echarts.init(
+            document.getElementById('367b3b260755419a8f5856da9ec1bc8f'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_367b3b260755419a8f5856da9ec1bc8f = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u64ad\u653e\u91cf",
+            "legendHoverLink": true,
+            "data": [
+                322489984,
+                195594992,
+                153946656,
+                123514336,
+                91757880,
+                62492144,
+                60665380,
+                43994488,
+                35083672,
+                33612576,
+                33597484,
+                30539572,
+                30515466,
+                30370028,
+                29643104,
+                29263228,
+                27916616,
+                23343874,
+                21771110,
+                21729980
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 9,
+                "valueAnimation": false
+            }
+        },
+        {
+            "type": "bar",
+            "name": "\u6536\u85cf\u6570",
+            "legendHoverLink": true,
+            "data": [
+                3461073,
+                3829400,
+                2445534,
+                2639709,
+                1005646,
+                1710406,
+                517662,
+                353356,
+                538371,
+                535080,
+                605071,
+                251829,
+                686898,
+                491834,
+                730012,
+                822518,
+                322921,
+                167221,
+                424556,
+                729781
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 9,
+                "valueAnimation": false
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u64ad\u653e\u91cf",
+                "\u6536\u85cf\u6570"
+            ],
+            "selected": {},
+            "show": true,
+            "top": "5%",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "rotate": 45,
+                "margin": 8,
+                "interval": 0,
+                "fontSize": 9,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "\u7ecf\u5178\u8001\u6b4c\uff0c\u4e45\u542c\u4e0d\u538c",
+                "\u90a3\u4e9b\u53ea\u542c\u524d\u594f\u5c31\u4e2d\u6bd2\u7684\u82f1\u6587\u6b4c",
+                "\u8bc4\u8bba\u8fc7\u4e07\u7684\u82f1\u6587\u6b4c\u4e0e\u6f5c\u529b\u80a1",
+                "\u90a3\u4e9b\u4f60\u719f\u6089\u5374\u53c8\u4e0d\u77e5\u9053\u540d\u5b57\u7684\u8f7b\u97f3...",
+                "\u6df1\u5ea6\u7761\u7720 |\u91cd\u5ea6\u5931\u7720\u8005\u4e13\u7528\u6b4c\u5355",
+                "\u3016\u552f\u7f8e\u7eaf\u97f3\u3017\u4e0d\u9700\u8981\u6b4c\u8bcd,\u4e5f\u53ef\u4ee5...",
+                "100\u9996\u534e\u8bed\u6c11\u8c23\uff0c\u56e0\u4e3a\u61c2\u5f97\u624d\u6709...",
+                "\u7ca4\u8bed\u5973\u58f0\uff1a\u6c38\u8fdc\u5fc3\u4eea",
+                "\u53e4\u5178\u6e05\u9999 I \u6211\u7684\u8336\u9986\u91cc\u4f4f\u7740\u5df4...",
+                "\u4e0d\u5f97\u4e86\uff01\u8fd9\u4e9b\u82f1\u6587\u6b4c\u7684\u70ed\u8bc4\u4fe1\u606f\u91cf...",
+                "\u3010\u6c11\u8c23\u76db\u5bb4\u3011100\u9996\u5fc5\u542c\u6b27\u7f8e\u6c11...",
+                "\u534e\u8bed\u6c11\u8c23 I \u5b64\u72ec\u7684\u5fc3\u8be0\u91ca\u8bd7\u610f...",
+                "\u300e\u66f2\u4f5c\u7cbe\u9009\u300f\u7ec6\u6570\u53e4\u98ce\u5708\u539f\u521b\u4f5c\u66f2...",
+                "\u52a9\u7720\u8f91 | \u81ea\u7136\u97f3\uff0c\u4f34\u7075\u52a8\u4e50\u7b26...",
+                "\u7535\u5b50\u00b7\u4e2d\u56fd\u98ce I \u611f\u53d7\u89d2\u5fb5\u5bab\u5546...",
+                "\u65e5\u672c\u4eba\u6c14\u5531\u89c1\uff0c\u6bcf\u4eba\u4e00\u9996\u826f\u66f2",
+                "\u300e\u56fd\u6447\u300f\u4e00\u767e\u652f\u4e50\u961f\u4e00\u767e\u79cd\u7cbe\u795e\u4fe1...",
+                "\u534e\u8bed\u7ecf\u5178\u00a0|\u00a0\u90a3\u4e9b\u5c5e\u4e8e\u6211\u4eec\u9752\u6625...",
+                "\u503e\u542c\u81ea\u7136 \u00b7 \u6d77\u4e4b\u9050\u60f3",
+                "\u3010\u65e5\u7cfb\u7eaf\u97f3\u5411\u3011\u590f\u6811\u7720 \u8749\u5728\u53eb ..."
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83d\udcca TOP20 \u6b4c\u5355\u64ad\u653e\u91cf vs \u6536\u85cf\u6570",
+            "target": "blank",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "dataZoom": [
+        {
+            "show": true,
+            "type": "slider",
+            "showDetail": true,
+            "showDataShadow": true,
+            "realtime": true,
+            "start": 20,
+            "end": 80,
+            "orient": "horizontal",
+            "zoomLock": false,
+            "filterMode": "filter"
+        }
+    ]
+};
+        chart_367b3b260755419a8f5856da9ec1bc8f.setOption(option_367b3b260755419a8f5856da9ec1bc8f);
+            window.addEventListener('resize', function(){
+                chart_367b3b260755419a8f5856da9ec1bc8f.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-4">
+                <div class="chart-card">
+                    <div id="830edb5af3c14273b444d1b539d87d17" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_830edb5af3c14273b444d1b539d87d17 = echarts.init(
+            document.getElementById('830edb5af3c14273b444d1b539d87d17'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_830edb5af3c14273b444d1b539d87d17 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "pie",
+            "colorBy": "data",
+            "legendHoverLink": true,
+            "selectedMode": false,
+            "selectedOffset": 10,
+            "clockwise": true,
+            "startAngle": 90,
+            "minAngle": 0,
+            "minShowLabelAngle": 0,
+            "avoidLabelOverlap": true,
+            "stillShowZeroSum": true,
+            "percentPrecision": 2,
+            "showEmptyCircle": true,
+            "emptyCircleStyle": {
+                "color": "lightgray",
+                "borderColor": "#000",
+                "borderWidth": 0,
+                "borderType": "solid",
+                "borderDashOffset": 0,
+                "borderCap": "butt",
+                "borderJoin": "bevel",
+                "borderMiterLimit": 10,
+                "opacity": 1
+            },
+            "data": [
+                {
+                    "name": "\u6d41\u884c",
+                    "value": 276
+                },
+                {
+                    "name": "\u6b27\u7f8e",
+                    "value": 195
+                },
+                {
+                    "name": "\u534e\u8bed",
+                    "value": 170
+                },
+                {
+                    "name": "\u8f7b\u97f3\u4e50",
+                    "value": 72
+                },
+                {
+                    "name": "\u653e\u677e",
+                    "value": 72
+                },
+                {
+                    "name": "R&B/Soul",
+                    "value": 68
+                },
+                {
+                    "name": "\u8bf4\u5531",
+                    "value": 55
+                },
+                {
+                    "name": "\u6cbb\u6108",
+                    "value": 54
+                },
+                {
+                    "name": "\u7535\u5b50",
+                    "value": 52
+                },
+                {
+                    "name": "\u6d6a\u6f2b",
+                    "value": 50
+                },
+                {
+                    "name": "\u65e5\u8bed",
+                    "value": 49
+                },
+                {
+                    "name": "\u591c\u665a",
+                    "value": 48
+                },
+                {
+                    "name": "\u4f24\u611f",
+                    "value": 47
+                },
+                {
+                    "name": "\u5feb\u4e50",
+                    "value": 39
+                },
+                {
+                    "name": "\u5b64\u72ec",
+                    "value": 38
+                }
+            ],
+            "radius": [
+                "35%",
+                "70%"
+            ],
+            "center": [
+                "55%",
+                "55%"
+            ],
+            "roseType": "area",
+            "label": {
+                "show": true,
+                "margin": 8,
+                "fontSize": 11,
+                "formatter": "{b}: {d}%",
+                "valueAnimation": false
+            },
+            "labelLine": {
+                "show": true,
+                "showAbove": false,
+                "length": 15,
+                "length2": 15,
+                "smooth": false,
+                "minTurnAngle": 90,
+                "maxSurfaceAngle": 90
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u6d41\u884c",
+                "\u6b27\u7f8e",
+                "\u534e\u8bed",
+                "\u8f7b\u97f3\u4e50",
+                "\u653e\u677e",
+                "R&B/Soul",
+                "\u8bf4\u5531",
+                "\u6cbb\u6108",
+                "\u7535\u5b50",
+                "\u6d6a\u6f2b",
+                "\u65e5\u8bed",
+                "\u591c\u665a",
+                "\u4f24\u611f",
+                "\u5feb\u4e50",
+                "\u5b64\u72ec"
+            ],
+            "selected": {},
+            "show": true,
+            "left": "2%",
+            "top": "15%",
+            "orient": "vertical",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83c\udff7\ufe0f \u70ed\u95e8\u6807\u7b7e\u5206\u5e03 TOP15",
+            "target": "blank",
+            "subtext": "\u5171 72 \u4e2a\u6807\u7b7e",
+            "subtarget": "blank",
+            "left": "center",
+            "top": "2%",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "color": [
+        "#5470c6",
+        "#91cc75",
+        "#fac858",
+        "#ee6666",
+        "#73c0de",
+        "#3ba272",
+        "#fc8452",
+        "#9a60b4",
+        "#ea7ccc"
+    ]
+};
+        chart_830edb5af3c14273b444d1b539d87d17.setOption(option_830edb5af3c14273b444d1b539d87d17);
+            window.addEventListener('resize', function(){
+                chart_830edb5af3c14273b444d1b539d87d17.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-5">
+                <div class="chart-card">
+                    <div id="72ef316df13b4ec080d49208307be687" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_72ef316df13b4ec080d49208307be687 = echarts.init(
+            document.getElementById('72ef316df13b4ec080d49208307be687'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_72ef316df13b4ec080d49208307be687 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u6b4c\u5355\u6570\u91cf",
+            "legendHoverLink": true,
+            "data": [
+                29,
+                28,
+                26,
+                24,
+                19,
+                12,
+                10,
+                10,
+                9,
+                9,
+                8,
+                8,
+                8,
+                7,
+                7,
+                7,
+                7,
+                7,
+                6,
+                6
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#fac858"
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u6b4c\u5355\u6570\u91cf"
+            ],
+            "selected": {},
+            "show": true,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "rotate": 30,
+                "margin": 8,
+                "interval": 0,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "\u51cc\u6668\u4e00\u70b9\u7684\u83b1\u8335\u732b",
+                "\u5c0f\u5c0f\u5c0f\u7684\u53ef\u7231\u5440",
+                "\u5fae\u96e8\u67d3\u5c18\u57c3",
+                "\u9732\u9732\u5728\u53d1\u5446",
+                "-\u5b64\u5c9b\u4e0e\u6d77_",
+                "\u8089\u8089\u7684\u4f5c\u4e1a\u541b",
+                "\u5931\u5fc6\u5b87\u5b99",
+                "\u8fd9\u4e2a\u6635\u79f0\u8d85\u9177der",
+                "\u4ee5\u4e0a\u7686\u975e-",
+                "Alimjan_Abdurezak\u963f\u529b\u6728\u6c5f",
+                "Quadrant_Shield_Music",
+                "\u662f\u4f60\u7684\u987e\u67d2\u67d2_cc",
+                "\u5077\u8d70\u4e86\u897f\u96c5\u56fe\u7684\u5929\u7a7a",
+                "Xenyc",
+                "\u8776\u5f71\u4e1b\u866b",
+                "\u5317\u65b9\u6613\u5148\u751f",
+                "\u8d70\u9a6c\u5ddd\u884c\u5317\u6d77\u8fb9",
+                "\u7528\u62377883359450",
+                "\u82b1\u5ac1\u8d6b\u841d",
+                "\u5df2\u7ecf160\u5c81\u4e86"
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "name": "\u6b4c\u5355\u6570\u91cf",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83d\udc65 TOP20 \u70ed\u95e8\u521b\u5efa\u8005",
+            "target": "blank",
+            "subtext": "\u6309\u6b4c\u5355\u6570\u91cf\u6392\u5e8f",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ]
+};
+        chart_72ef316df13b4ec080d49208307be687.setOption(option_72ef316df13b4ec080d49208307be687);
+            window.addEventListener('resize', function(){
+                chart_72ef316df13b4ec080d49208307be687.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-6">
+                <div class="chart-card">
+                    <div id="4a20c79c084345e0b452aa11dd033975" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_4a20c79c084345e0b452aa11dd033975 = echarts.init(
+            document.getElementById('4a20c79c084345e0b452aa11dd033975'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_4a20c79c084345e0b452aa11dd033975 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "scatter",
+            "name": "\u6b4c\u5355",
+            "symbolSize": 10,
+            "data": [
+                [
+                    322489984,
+                    3461073
+                ],
+                [
+                    195594992,
+                    3829400
+                ],
+                [
+                    153946656,
+                    2445534
+                ],
+                [
+                    123514336,
+                    2639709
+                ],
+                [
+                    91757880,
+                    1005646
+                ],
+                [
+                    62492144,
+                    1710406
+                ],
+                [
+                    60665380,
+                    517662
+                ],
+                [
+                    43994488,
+                    353356
+                ],
+                [
+                    35083672,
+                    538371
+                ],
+                [
+                    33612576,
+                    535080
+                ],
+                [
+                    33597484,
+                    605071
+                ],
+                [
+                    30539572,
+                    251829
+                ],
+                [
+                    30515466,
+                    686898
+                ],
+                [
+                    30370028,
+                    491834
+                ],
+                [
+                    29643104,
+                    730012
+                ],
+                [
+                    29263228,
+                    822518
+                ],
+                [
+                    27916616,
+                    322921
+                ],
+                [
+                    23343874,
+                    167221
+                ],
+                [
+                    21771110,
+                    424556
+                ],
+                [
+                    21729980,
+                    729781
+                ],
+                [
+                    21325610,
+                    354299
+                ],
+                [
+                    20037268,
+                    165905
+                ],
+                [
+                    19788720,
+                    233551
+                ],
+                [
+                    18851724,
+                    306702
+                ],
+                [
+                    18751704,
+                    278603
+                ],
+                [
+                    18401406,
+                    241798
+                ],
+                [
+                    18134118,
+                    141858
+                ],
+                [
+                    18015788,
+                    420341
+                ],
+                [
+                    17112220,
+                    305530
+                ],
+                [
+                    16709766,
+                    313893
+                ],
+                [
+                    15284913,
+                    399210
+                ],
+                [
+                    14509515,
+                    271826
+                ],
+                [
+                    14401903,
+                    318245
+                ],
+                [
+                    13950861,
+                    485028
+                ],
+                [
+                    13866960,
+                    342535
+                ],
+                [
+                    13521225,
+                    222168
+                ],
+                [
+                    13498031,
+                    319091
+                ],
+                [
+                    12497514,
+                    77125
+                ],
+                [
+                    12298915,
+                    138110
+                ],
+                [
+                    11724750,
+                    147599
+                ],
+                [
+                    11633333,
+                    189297
+                ],
+                [
+                    11612505,
+                    139117
+                ],
+                [
+                    11199469,
+                    277856
+                ],
+                [
+                    11003836,
+                    78859
+                ],
+                [
+                    10977005,
+                    155082
+                ],
+                [
+                    10908655,
+                    96991
+                ],
+                [
+                    10532284,
+                    120538
+                ],
+                [
+                    10340867,
+                    233829
+                ],
+                [
+                    9759094,
+                    80373
+                ],
+                [
+                    9740233,
+                    102895
+                ],
+                [
+                    9700145,
+                    142406
+                ],
+                [
+                    9579285,
+                    189996
+                ],
+                [
+                    9407279,
+                    145242
+                ],
+                [
+                    9283220,
+                    232684
+                ],
+                [
+                    8731981,
+                    256071
+                ],
+                [
+                    8502513,
+                    112689
+                ],
+                [
+                    8143332,
+                    146785
+                ],
+                [
+                    7826241,
+                    86526
+                ],
+                [
+                    7710582,
+                    64741
+                ],
+                [
+                    6955420,
+                    63946
+                ],
+                [
+                    6776667,
+                    42429
+                ],
+                [
+                    6696219,
+                    89642
+                ],
+                [
+                    6657598,
+                    108287
+                ],
+                [
+                    6589405,
+                    43584
+                ],
+                [
+                    6446778,
+                    113762
+                ],
+                [
+                    6395369,
+                    29950
+                ],
+                [
+                    6362762,
+                    85951
+                ],
+                [
+                    6131855,
+                    96860
+                ],
+                [
+                    6113473,
+                    106802
+                ],
+                [
+                    6067053,
+                    59079
+                ],
+                [
+                    5965860,
+                    113676
+                ],
+                [
+                    5831319,
+                    21287
+                ],
+                [
+                    5812779,
+                    141641
+                ],
+                [
+                    5800049,
+                    88662
+                ],
+                [
+                    5750945,
+                    32140
+                ],
+                [
+                    5628628,
+                    57864
+                ],
+                [
+                    5603439,
+                    88176
+                ],
+                [
+                    5591925,
+                    158881
+                ],
+                [
+                    5286789,
+                    97230
+                ],
+                [
+                    5259644,
+                    50074
+                ],
+                [
+                    5229785,
+                    47534
+                ],
+                [
+                    5114945,
+                    76089
+                ],
+                [
+                    5013694,
+                    28901
+                ],
+                [
+                    4968458,
+                    67935
+                ],
+                [
+                    4881668,
+                    83145
+                ],
+                [
+                    4821793,
+                    56834
+                ],
+                [
+                    4581416,
+                    39341
+                ],
+                [
+                    4576045,
+                    37884
+                ],
+                [
+                    4571901,
+                    32431
+                ],
+                [
+                    4533483,
+                    17483
+                ],
+                [
+                    4532564,
+                    81692
+                ],
+                [
+                    4491737,
+                    51411
+                ],
+                [
+                    4471671,
+                    46482
+                ],
+                [
+                    4460269,
+                    111386
+                ],
+                [
+                    4429712,
+                    51173
+                ],
+                [
+                    4370287,
+                    71798
+                ],
+                [
+                    4364860,
+                    51152
+                ],
+                [
+                    4337498,
+                    148917
+                ],
+                [
+                    4283477,
+                    20186
+                ],
+                [
+                    4261715,
+                    56054
+                ],
+                [
+                    4160725,
+                    83767
+                ],
+                [
+                    4114173,
+                    60994
+                ],
+                [
+                    4077483,
+                    58476
+                ],
+                [
+                    4060237,
+                    60122
+                ],
+                [
+                    4022210,
+                    78702
+                ],
+                [
+                    4011968,
+                    32971
+                ],
+                [
+                    3954397,
+                    58510
+                ],
+                [
+                    3857998,
+                    29441
+                ],
+                [
+                    3749444,
+                    44928
+                ],
+                [
+                    3741840,
+                    103535
+                ],
+                [
+                    3637812,
+                    38997
+                ],
+                [
+                    3569660,
+                    90556
+                ],
+                [
+                    3520193,
+                    55059
+                ],
+                [
+                    3389332,
+                    34543
+                ],
+                [
+                    3364950,
+                    16684
+                ],
+                [
+                    3335193,
+                    85758
+                ],
+                [
+                    3208489,
+                    70337
+                ],
+                [
+                    3149497,
+                    51959
+                ],
+                [
+                    3052503,
+                    38591
+                ],
+                [
+                    2900835,
+                    37317
+                ],
+                [
+                    2898190,
+                    35419
+                ],
+                [
+                    2836885,
+                    24574
+                ],
+                [
+                    2771082,
+                    28703
+                ],
+                [
+                    2739451,
+                    37721
+                ],
+                [
+                    2733010,
+                    42028
+                ],
+                [
+                    2705122,
+                    43704
+                ],
+                [
+                    2582027,
+                    52829
+                ],
+                [
+                    2549823,
+                    22045
+                ],
+                [
+                    2488535,
+                    83102
+                ],
+                [
+                    2434601,
+                    24610
+                ],
+                [
+                    2348603,
+                    16224
+                ],
+                [
+                    2332980,
+                    22000
+                ],
+                [
+                    2321342,
+                    13166
+                ],
+                [
+                    2307393,
+                    26548
+                ],
+                [
+                    2290377,
+                    33044
+                ],
+                [
+                    2203686,
+                    23028
+                ],
+                [
+                    2165377,
+                    7508
+                ],
+                [
+                    2163544,
+                    8935
+                ],
+                [
+                    2137232,
+                    28978
+                ],
+                [
+                    2122330,
+                    19323
+                ],
+                [
+                    2099783,
+                    29404
+                ],
+                [
+                    2048627,
+                    48132
+                ],
+                [
+                    1990511,
+                    18815
+                ],
+                [
+                    1955426,
+                    11164
+                ],
+                [
+                    1923958,
+                    51903
+                ],
+                [
+                    1879429,
+                    13461
+                ],
+                [
+                    1840627,
+                    25250
+                ],
+                [
+                    1835500,
+                    10188
+                ],
+                [
+                    1820409,
+                    23212
+                ],
+                [
+                    1810958,
+                    22365
+                ],
+                [
+                    1804443,
+                    12951
+                ],
+                [
+                    1780604,
+                    17311
+                ],
+                [
+                    1747670,
+                    10632
+                ],
+                [
+                    1747381,
+                    25547
+                ],
+                [
+                    1601588,
+                    8498
+                ],
+                [
+                    1599352,
+                    10957
+                ],
+                [
+                    1599028,
+                    19313
+                ],
+                [
+                    1597073,
+                    7016
+                ],
+                [
+                    1586364,
+                    28647
+                ],
+                [
+                    1573202,
+                    10911
+                ],
+                [
+                    1530620,
+                    10477
+                ],
+                [
+                    1521636,
+                    11919
+                ],
+                [
+                    1407026,
+                    19727
+                ],
+                [
+                    1395064,
+                    10328
+                ],
+                [
+                    1384497,
+                    16154
+                ],
+                [
+                    1364838,
+                    19998
+                ],
+                [
+                    1363229,
+                    38993
+                ],
+                [
+                    1265037,
+                    9882
+                ],
+                [
+                    1239890,
+                    11265
+                ],
+                [
+                    1199811,
+                    14796
+                ],
+                [
+                    1196843,
+                    13418
+                ],
+                [
+                    1185555,
+                    13115
+                ],
+                [
+                    1168042,
+                    10662
+                ],
+                [
+                    1166917,
+                    28790
+                ],
+                [
+                    1141015,
+                    20160
+                ],
+                [
+                    1135386,
+                    6708
+                ],
+                [
+                    1098258,
+                    17298
+                ],
+                [
+                    1097643,
+                    11760
+                ],
+                [
+                    1083655,
+                    32699
+                ],
+                [
+                    990718,
+                    7170
+                ],
+                [
+                    979783,
+                    11417
+                ],
+                [
+                    964942,
+                    5536
+                ],
+                [
+                    940353,
+                    8932
+                ],
+                [
+                    936565,
+                    8658
+                ],
+                [
+                    929597,
+                    18885
+                ],
+                [
+                    921062,
+                    17047
+                ],
+                [
+                    917811,
+                    10069
+                ],
+                [
+                    916462,
+                    10275
+                ],
+                [
+                    898613,
+                    6556
+                ],
+                [
+                    894863,
+                    8323
+                ],
+                [
+                    857701,
+                    3861
+                ],
+                [
+                    809767,
+                    13436
+                ],
+                [
+                    804421,
+                    16282
+                ],
+                [
+                    763956,
+                    6575
+                ],
+                [
+                    739812,
+                    5430
+                ],
+                [
+                    736745,
+                    6279
+                ],
+                [
+                    713431,
+                    8613
+                ],
+                [
+                    713309,
+                    9003
+                ],
+                [
+                    710491,
+                    2224
+                ],
+                [
+                    702923,
+                    4199
+                ]
+            ],
+            "label": {
+                "show": false,
+                "margin": 8,
+                "valueAnimation": false
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u6b4c\u5355"
+            ],
+            "selected": {},
+            "show": true,
+            "top": "8%",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "type": "value",
+            "name": "\u64ad\u653e\u91cf",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                322489984,
+                195594992,
+                153946656,
+                123514336,
+                91757880,
+                62492144,
+                60665380,
+                43994488,
+                35083672,
+                33612576,
+                33597484,
+                30539572,
+                30515466,
+                30370028,
+                29643104,
+                29263228,
+                27916616,
+                23343874,
+                21771110,
+                21729980,
+                21325610,
+                20037268,
+                19788720,
+                18851724,
+                18751704,
+                18401406,
+                18134118,
+                18015788,
+                17112220,
+                16709766,
+                15284913,
+                14509515,
+                14401903,
+                13950861,
+                13866960,
+                13521225,
+                13498031,
+                12497514,
+                12298915,
+                11724750,
+                11633333,
+                11612505,
+                11199469,
+                11003836,
+                10977005,
+                10908655,
+                10532284,
+                10340867,
+                9759094,
+                9740233,
+                9700145,
+                9579285,
+                9407279,
+                9283220,
+                8731981,
+                8502513,
+                8143332,
+                7826241,
+                7710582,
+                6955420,
+                6776667,
+                6696219,
+                6657598,
+                6589405,
+                6446778,
+                6395369,
+                6362762,
+                6131855,
+                6113473,
+                6067053,
+                5965860,
+                5831319,
+                5812779,
+                5800049,
+                5750945,
+                5628628,
+                5603439,
+                5591925,
+                5286789,
+                5259644,
+                5229785,
+                5114945,
+                5013694,
+                4968458,
+                4881668,
+                4821793,
+                4581416,
+                4576045,
+                4571901,
+                4533483,
+                4532564,
+                4491737,
+                4471671,
+                4460269,
+                4429712,
+                4370287,
+                4364860,
+                4337498,
+                4283477,
+                4261715,
+                4160725,
+                4114173,
+                4077483,
+                4060237,
+                4022210,
+                4011968,
+                3954397,
+                3857998,
+                3749444,
+                3741840,
+                3637812,
+                3569660,
+                3520193,
+                3389332,
+                3364950,
+                3335193,
+                3208489,
+                3149497,
+                3052503,
+                2900835,
+                2898190,
+                2836885,
+                2771082,
+                2739451,
+                2733010,
+                2705122,
+                2582027,
+                2549823,
+                2488535,
+                2434601,
+                2348603,
+                2332980,
+                2321342,
+                2307393,
+                2290377,
+                2203686,
+                2165377,
+                2163544,
+                2137232,
+                2122330,
+                2099783,
+                2048627,
+                1990511,
+                1955426,
+                1923958,
+                1879429,
+                1840627,
+                1835500,
+                1820409,
+                1810958,
+                1804443,
+                1780604,
+                1747670,
+                1747381,
+                1601588,
+                1599352,
+                1599028,
+                1597073,
+                1586364,
+                1573202,
+                1530620,
+                1521636,
+                1407026,
+                1395064,
+                1384497,
+                1364838,
+                1363229,
+                1265037,
+                1239890,
+                1199811,
+                1196843,
+                1185555,
+                1168042,
+                1166917,
+                1141015,
+                1135386,
+                1098258,
+                1097643,
+                1083655,
+                990718,
+                979783,
+                964942,
+                940353,
+                936565,
+                929597,
+                921062,
+                917811,
+                916462,
+                898613,
+                894863,
+                857701,
+                809767,
+                804421,
+                763956,
+                739812,
+                736745,
+                713431,
+                713309,
+                710491,
+                702923
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "type": "value",
+            "name": "\u6536\u85cf\u6570",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83d\udcab \u64ad\u653e\u91cf\u4e0e\u6536\u85cf\u6570\u5173\u7cfb\u5206\u6790",
+            "target": "blank",
+            "subtext": "\u6837\u672c\u6570: 200",
+            "subtarget": "blank",
+            "left": "center",
+            "top": "2%",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "visualMap": {
+        "show": true,
+        "type": "continuous",
+        "min": 2224,
+        "max": 3829400,
+        "inRange": {
+            "symbolSize": [
+                20,
+                50
+            ]
+        },
+        "calculable": true,
+        "inverse": false,
+        "splitNumber": 5,
+        "dimension": 1,
+        "hoverLink": true,
+        "orient": "vertical",
+        "bottom": "10%",
+        "right": "2%",
+        "padding": 5,
+        "showLabel": true,
+        "itemWidth": 20,
+        "itemHeight": 140,
+        "borderWidth": 0
+    }
+};
+        chart_4a20c79c084345e0b452aa11dd033975.setOption(option_4a20c79c084345e0b452aa11dd033975);
+            window.addEventListener('resize', function(){
+                chart_4a20c79c084345e0b452aa11dd033975.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-7">
+                <div class="chart-card">
+                    <div id="78548798ca324e0581b14a9582bcb968" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_78548798ca324e0581b14a9582bcb968 = echarts.init(
+            document.getElementById('78548798ca324e0581b14a9582bcb968'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_78548798ca324e0581b14a9582bcb968 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "pie",
+            "colorBy": "data",
+            "legendHoverLink": true,
+            "selectedMode": false,
+            "selectedOffset": 10,
+            "clockwise": true,
+            "startAngle": 90,
+            "minAngle": 0,
+            "minShowLabelAngle": 0,
+            "avoidLabelOverlap": true,
+            "stillShowZeroSum": true,
+            "percentPrecision": 2,
+            "showEmptyCircle": true,
+            "emptyCircleStyle": {
+                "color": "lightgray",
+                "borderColor": "#000",
+                "borderWidth": 0,
+                "borderType": "solid",
+                "borderDashOffset": 0,
+                "borderCap": "butt",
+                "borderJoin": "bevel",
+                "borderMiterLimit": 10,
+                "opacity": 1
+            },
+            "data": [
+                {
+                    "name": "\u8d85\u5927\u578b(500+\u9996)",
+                    "value": 1
+                },
+                {
+                    "name": "\u5927\u578b(200-500\u9996)",
+                    "value": 64
+                },
+                {
+                    "name": "\u4e2d\u578b(100-200\u9996)",
+                    "value": 254
+                },
+                {
+                    "name": "\u5c0f\u578b(50-100\u9996)",
+                    "value": 246
+                },
+                {
+                    "name": "\u8ff7\u4f60\u578b(<50\u9996)",
+                    "value": 120
+                }
+            ],
+            "radius": [
+                "40%",
+                "70%"
+            ],
+            "center": [
+                "55%",
+                "55%"
+            ],
+            "label": {
+                "show": true,
+                "margin": 8,
+                "formatter": "{b}\n{c}\u4e2a ({d}%)",
+                "valueAnimation": false
+            },
+            "labelLine": {
+                "show": true,
+                "showAbove": false,
+                "length": 15,
+                "length2": 15,
+                "smooth": false,
+                "minTurnAngle": 90,
+                "maxSurfaceAngle": 90
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u8d85\u5927\u578b(500+\u9996)",
+                "\u5927\u578b(200-500\u9996)",
+                "\u4e2d\u578b(100-200\u9996)",
+                "\u5c0f\u578b(50-100\u9996)",
+                "\u8ff7\u4f60\u578b(<50\u9996)"
+            ],
+            "selected": {},
+            "show": true,
+            "left": "2%",
+            "top": "20%",
+            "orient": "vertical",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83d\udce6 \u6b4c\u5355\u89c4\u6a21\u5206\u5e03",
+            "target": "blank",
+            "subtext": "\u603b\u8ba1 685 \u4e2a\u6b4c\u5355",
+            "subtarget": "blank",
+            "left": "center",
+            "top": "2%",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "color": [
+        "#5470c6",
+        "#91cc75",
+        "#fac858",
+        "#ee6666",
+        "#73c0de",
+        "#3ba272",
+        "#fc8452",
+        "#9a60b4",
+        "#ea7ccc"
+    ]
+};
+        chart_78548798ca324e0581b14a9582bcb968.setOption(option_78548798ca324e0581b14a9582bcb968);
+            window.addEventListener('resize', function(){
+                chart_78548798ca324e0581b14a9582bcb968.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-8">
+                <div class="chart-card">
+                    <div id="d3267cc991ff4fcca4cef114ae987871" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_d3267cc991ff4fcca4cef114ae987871 = echarts.init(
+            document.getElementById('d3267cc991ff4fcca4cef114ae987871'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_d3267cc991ff4fcca4cef114ae987871 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "wordCloud",
+            "shape": "circle",
+            "rotationRange": [
+                -90,
+                90
+            ],
+            "rotationStep": 45,
+            "girdSize": 20,
+            "sizeRange": [
+                20,
+                100
+            ],
+            "data": [
+                {
+                    "name": "\u7ca4\u8bed",
+                    "value": 5,
+                    "textStyle": {
+                        "color": "rgb(128,67,52)"
+                    }
+                },
+                {
+                    "name": "\u6000\u65e7",
+                    "value": 37,
+                    "textStyle": {
+                        "color": "rgb(50,76,131)"
+                    }
+                },
+                {
+                    "name": "\u534e\u8bed",
+                    "value": 170,
+                    "textStyle": {
+                        "color": "rgb(1,98,141)"
+                    }
+                },
+                {
+                    "name": "\u6d41\u884c",
+                    "value": 276,
+                    "textStyle": {
+                        "color": "rgb(130,71,63)"
+                    }
+                },
+                {
+                    "name": "\u6b27\u7f8e",
+                    "value": 195,
+                    "textStyle": {
+                        "color": "rgb(68,71,144)"
+                    }
+                },
+                {
+                    "name": "\u5feb\u4e50",
+                    "value": 39,
+                    "textStyle": {
+                        "color": "rgb(83,88,114)"
+                    }
+                },
+                {
+                    "name": "\u699c\u5355",
+                    "value": 9,
+                    "textStyle": {
+                        "color": "rgb(2,23,145)"
+                    }
+                },
+                {
+                    "name": "\u8f7b\u97f3\u4e50",
+                    "value": 72,
+                    "textStyle": {
+                        "color": "rgb(8,62,111)"
+                    }
+                },
+                {
+                    "name": "\u5b66\u4e60",
+                    "value": 21,
+                    "textStyle": {
+                        "color": "rgb(138,133,107)"
+                    }
+                },
+                {
+                    "name": "\u6cbb\u6108",
+                    "value": 54,
+                    "textStyle": {
+                        "color": "rgb(31,101,147)"
+                    }
+                },
+                {
+                    "name": "\u591c\u665a",
+                    "value": 48,
+                    "textStyle": {
+                        "color": "rgb(31,88,84)"
+                    }
+                },
+                {
+                    "name": "\u5b89\u9759",
+                    "value": 30,
+                    "textStyle": {
+                        "color": "rgb(48,86,160)"
+                    }
+                },
+                {
+                    "name": "\u94a2\u7434",
+                    "value": 14,
+                    "textStyle": {
+                        "color": "rgb(86,44,68)"
+                    }
+                },
+                {
+                    "name": "ACG",
+                    "value": 36,
+                    "textStyle": {
+                        "color": "rgb(67,129,35)"
+                    }
+                },
+                {
+                    "name": "\u6c11\u8c23",
+                    "value": 21,
+                    "textStyle": {
+                        "color": "rgb(153,16,22)"
+                    }
+                },
+                {
+                    "name": "\u53e4\u5178",
+                    "value": 11,
+                    "textStyle": {
+                        "color": "rgb(34,125,133)"
+                    }
+                },
+                {
+                    "name": "\u4e0b\u5348\u8336",
+                    "value": 8,
+                    "textStyle": {
+                        "color": "rgb(154,46,140)"
+                    }
+                },
+                {
+                    "name": "\u653e\u677e",
+                    "value": 72,
+                    "textStyle": {
+                        "color": "rgb(74,56,138)"
+                    }
+                },
+                {
+                    "name": "\u4e61\u6751",
+                    "value": 6,
+                    "textStyle": {
+                        "color": "rgb(88,32,85)"
+                    }
+                },
+                {
+                    "name": "\u5b64\u72ec",
+                    "value": 38,
+                    "textStyle": {
+                        "color": "rgb(107,86,127)"
+                    }
+                },
+                {
+                    "name": "\u53e4\u98ce",
+                    "value": 27,
+                    "textStyle": {
+                        "color": "rgb(127,94,136)"
+                    }
+                },
+                {
+                    "name": "\u7535\u5b50",
+                    "value": 52,
+                    "textStyle": {
+                        "color": "rgb(41,95,47)"
+                    }
+                },
+                {
+                    "name": "\u6c11\u65cf",
+                    "value": 2,
+                    "textStyle": {
+                        "color": "rgb(159,155,74)"
+                    }
+                },
+                {
+                    "name": "\u65e5\u8bed",
+                    "value": 49,
+                    "textStyle": {
+                        "color": "rgb(132,42,116)"
+                    }
+                },
+                {
+                    "name": "\u7ffb\u5531",
+                    "value": 2,
+                    "textStyle": {
+                        "color": "rgb(34,5,54)"
+                    }
+                },
+                {
+                    "name": "\u6447\u6eda",
+                    "value": 34,
+                    "textStyle": {
+                        "color": "rgb(17,90,6)"
+                    }
+                },
+                {
+                    "name": "90\u540e",
+                    "value": 8,
+                    "textStyle": {
+                        "color": "rgb(76,35,136)"
+                    }
+                },
+                {
+                    "name": "\u540e\u6447",
+                    "value": 6,
+                    "textStyle": {
+                        "color": "rgb(96,14,113)"
+                    }
+                },
+                {
+                    "name": "\u6e05\u65b0",
+                    "value": 17,
+                    "textStyle": {
+                        "color": "rgb(127,92,129)"
+                    }
+                },
+                {
+                    "name": "\u9152\u5427",
+                    "value": 11,
+                    "textStyle": {
+                        "color": "rgb(133,67,157)"
+                    }
+                },
+                {
+                    "name": "\u97e9\u8bed",
+                    "value": 24,
+                    "textStyle": {
+                        "color": "rgb(154,30,95)"
+                    }
+                },
+                {
+                    "name": "\u821e\u66f2",
+                    "value": 4,
+                    "textStyle": {
+                        "color": "rgb(73,26,62)"
+                    }
+                },
+                {
+                    "name": "\u5174\u594b",
+                    "value": 33,
+                    "textStyle": {
+                        "color": "rgb(140,128,26)"
+                    }
+                },
+                {
+                    "name": "\u5f71\u89c6\u539f\u58f0",
+                    "value": 21,
+                    "textStyle": {
+                        "color": "rgb(68,49,135)"
+                    }
+                },
+                {
+                    "name": "\u53e6\u7c7b/\u72ec\u7acb",
+                    "value": 25,
+                    "textStyle": {
+                        "color": "rgb(24,139,126)"
+                    }
+                },
+                {
+                    "name": "\u5668\u4e50",
+                    "value": 11,
+                    "textStyle": {
+                        "color": "rgb(4,111,61)"
+                    }
+                },
+                {
+                    "name": "\u6e38\u620f",
+                    "value": 19,
+                    "textStyle": {
+                        "color": "rgb(22,43,107)"
+                    }
+                },
+                {
+                    "name": "\u5c0f\u8bed\u79cd",
+                    "value": 7,
+                    "textStyle": {
+                        "color": "rgb(93,54,107)"
+                    }
+                },
+                {
+                    "name": "New Age",
+                    "value": 3,
+                    "textStyle": {
+                        "color": "rgb(118,21,132)"
+                    }
+                },
+                {
+                    "name": "\u6d6a\u6f2b",
+                    "value": 50,
+                    "textStyle": {
+                        "color": "rgb(57,80,105)"
+                    }
+                },
+                {
+                    "name": "\u611f\u52a8",
+                    "value": 13,
+                    "textStyle": {
+                        "color": "rgb(136,34,21)"
+                    }
+                },
+                {
+                    "name": "\u8fd0\u52a8",
+                    "value": 13,
+                    "textStyle": {
+                        "color": "rgb(146,119,76)"
+                    }
+                },
+                {
+                    "name": "\u9a7e\u8f66",
+                    "value": 36,
+                    "textStyle": {
+                        "color": "rgb(28,150,130)"
+                    }
+                },
+                {
+                    "name": "KTV",
+                    "value": 2,
+                    "textStyle": {
+                        "color": "rgb(77,58,134)"
+                    }
+                },
+                {
+                    "name": "\u8bf4\u5531",
+                    "value": 55,
+                    "textStyle": {
+                        "color": "rgb(142,141,55)"
+                    }
+                },
+                {
+                    "name": "\u7235\u58eb",
+                    "value": 18,
+                    "textStyle": {
+                        "color": "rgb(35,23,85)"
+                    }
+                },
+                {
+                    "name": "R&B/Soul",
+                    "value": 68,
+                    "textStyle": {
+                        "color": "rgb(34,96,137)"
+                    }
+                },
+                {
+                    "name": "\u6027\u611f",
+                    "value": 4,
+                    "textStyle": {
+                        "color": "rgb(26,42,112)"
+                    }
+                },
+                {
+                    "name": "\u7ecf\u5178",
+                    "value": 26,
+                    "textStyle": {
+                        "color": "rgb(111,43,27)"
+                    }
+                },
+                {
+                    "name": "\u4f24\u611f",
+                    "value": 47,
+                    "textStyle": {
+                        "color": "rgb(83,46,6)"
+                    }
+                },
+                {
+                    "name": "Bossa Nova",
+                    "value": 3,
+                    "textStyle": {
+                        "color": "rgb(12,96,131)"
+                    }
+                },
+                {
+                    "name": "\u65c5\u884c",
+                    "value": 16,
+                    "textStyle": {
+                        "color": "rgb(126,32,141)"
+                    }
+                },
+                {
+                    "name": "\u5de5\u4f5c",
+                    "value": 7,
+                    "textStyle": {
+                        "color": "rgb(111,72,158)"
+                    }
+                },
+                {
+                    "name": "\u6563\u6b65",
+                    "value": 10,
+                    "textStyle": {
+                        "color": "rgb(14,122,112)"
+                    }
+                },
+                {
+                    "name": "\u5730\u94c1",
+                    "value": 1,
+                    "textStyle": {
+                        "color": "rgb(144,147,58)"
+                    }
+                },
+                {
+                    "name": "\u5409\u4ed6",
+                    "value": 1,
+                    "textStyle": {
+                        "color": "rgb(154,138,28)"
+                    }
+                },
+                {
+                    "name": "\u82f1\u4f26",
+                    "value": 2,
+                    "textStyle": {
+                        "color": "rgb(142,28,157)"
+                    }
+                },
+                {
+                    "name": "\u91d1\u5c5e",
+                    "value": 5,
+                    "textStyle": {
+                        "color": "rgb(46,72,29)"
+                    }
+                },
+                {
+                    "name": "\u62c9\u4e01",
+                    "value": 1,
+                    "textStyle": {
+                        "color": "rgb(109,25,10)"
+                    }
+                },
+                {
+                    "name": "80\u540e",
+                    "value": 2,
+                    "textStyle": {
+                        "color": "rgb(95,55,107)"
+                    }
+                },
+                {
+                    "name": "70\u540e",
+                    "value": 1,
+                    "textStyle": {
+                        "color": "rgb(86,1,61)"
+                    }
+                },
+                {
+                    "name": "00\u540e",
+                    "value": 11,
+                    "textStyle": {
+                        "color": "rgb(122,143,84)"
+                    }
+                },
+                {
+                    "name": "\u4e16\u754c\u97f3\u4e50",
+                    "value": 6,
+                    "textStyle": {
+                        "color": "rgb(17,25,40)"
+                    }
+                },
+                {
+                    "name": "\u84dd\u8c03",
+                    "value": 8,
+                    "textStyle": {
+                        "color": "rgb(142,108,69)"
+                    }
+                },
+                {
+                    "name": "\u7f51\u7edc\u6b4c\u66f2",
+                    "value": 16,
+                    "textStyle": {
+                        "color": "rgb(45,93,157)"
+                    }
+                },
+                {
+                    "name": "\u601d\u5ff5",
+                    "value": 7,
+                    "textStyle": {
+                        "color": "rgb(35,86,89)"
+                    }
+                },
+                {
+                    "name": "\u6821\u56ed",
+                    "value": 5,
+                    "textStyle": {
+                        "color": "rgb(29,143,75)"
+                    }
+                },
+                {
+                    "name": "\u6e05\u6668",
+                    "value": 3,
+                    "textStyle": {
+                        "color": "rgb(120,97,123)"
+                    }
+                },
+                {
+                    "name": "\u5348\u4f11",
+                    "value": 2,
+                    "textStyle": {
+                        "color": "rgb(160,64,14)"
+                    }
+                },
+                {
+                    "name": "\u670b\u514b",
+                    "value": 2,
+                    "textStyle": {
+                        "color": "rgb(28,22,117)"
+                    }
+                },
+                {
+                    "name": "\u97f3\u4e50\u5267",
+                    "value": 1,
+                    "textStyle": {
+                        "color": "rgb(90,77,84)"
+                    }
+                },
+                {
+                    "name": "\u7efc\u827a",
+                    "value": 3,
+                    "textStyle": {
+                        "color": "rgb(56,59,138)"
+                    }
+                }
+            ],
+            "drawOutOfBound": false,
+            "textStyle": {
+                "emphasis": {}
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [],
+            "selected": {},
+            "show": true,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "title": [
+        {
+            "show": true,
+            "text": "\u2601\ufe0f \u70ed\u95e8\u6807\u7b7e\u8bcd\u4e91",
+            "target": "blank",
+            "subtext": "\u5171 72 \u4e2a\u6807\u7b7e",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ]
+};
+        chart_d3267cc991ff4fcca4cef114ae987871.setOption(option_d3267cc991ff4fcca4cef114ae987871);
+            window.addEventListener('resize', function(){
+                chart_d3267cc991ff4fcca4cef114ae987871.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-9">
+                <div class="chart-card">
+                    <div id="bbf97027df4b4a7c9417ac07c499c6d9" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_bbf97027df4b4a7c9417ac07c499c6d9 = echarts.init(
+            document.getElementById('bbf97027df4b4a7c9417ac07c499c6d9'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_bbf97027df4b4a7c9417ac07c499c6d9 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u70ed\u5ea6\u503c",
+            "legendHoverLink": true,
+            "data": [
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100,
+                100
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#5470c6"
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u70ed\u5ea6\u503c"
+            ],
+            "selected": {},
+            "show": true,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "rotate": 45,
+                "margin": 8,
+                "interval": 0,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "\u504f\u504f\u559c\u6b22\u4f60",
+                "\u5149\u8f89\u5c81\u6708",
+                "\u661f\u661f\u70b9\u706f",
+                "\u6625\u590f\u79cb\u51ac",
+                "\u5343\u5343\u9615\u6b4c",
+                "\u68a6\u9192\u65f6\u5206",
+                "\u6700\u6d6a\u6f2b\u7684\u4e8b",
+                "\u8c22\u8c22\u4f60\u7684\u7231",
+                "\u4e16\u754c\u7b2c\u4e00\u7b49(Live)",
+                "\u670b\u53cb",
+                "\u5927\u6d77",
+                "\u6c34\u624b",
+                "\u543b\u522b",
+                "\u7948\u7977",
+                "\u7231\u5982\u6f6e\u6c34",
+                "\u66fe\u7ecf\u7684\u4f60",
+                "\u8ba9\u4e00\u5207\u968f\u98ce",
+                "\u8d70\u8fc7\u5496\u5561\u5c4b",
+                "\u653e\u4f60\u5728\u5fc3\u91cc",
+                "\u8bb2\u4e0d\u51fa\u518d\u89c1",
+                "Five Hundred Miles",
+                "Negative Things",
+                "What Are Words",
+                "Before You Break M...",
+                "Stuttering",
+                "So Incredible",
+                "Road Trip",
+                "Rain after Summer",
+                "\u6f6e\u9cf4\u308a",
+                "Inspire"
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "name": "\u70ed\u5ea6\u503c",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83c\udfb5 TOP30 \u70ed\u95e8\u6b4c\u66f2\u6392\u884c",
+            "target": "blank",
+            "subtext": "\u6309\u70ed\u5ea6\u503c\u6392\u5e8f",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "dataZoom": [
+        {
+            "show": true,
+            "type": "slider",
+            "showDetail": true,
+            "showDataShadow": true,
+            "realtime": true,
+            "start": 20,
+            "end": 60,
+            "orient": "horizontal",
+            "zoomLock": false,
+            "filterMode": "filter"
+        }
+    ]
+};
+        chart_bbf97027df4b4a7c9417ac07c499c6d9.setOption(option_bbf97027df4b4a7c9417ac07c499c6d9);
+            window.addEventListener('resize', function(){
+                chart_bbf97027df4b4a7c9417ac07c499c6d9.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-10">
+                <div class="chart-card">
+                    <div id="2c960755f6a64f8699ae0e4ac3fb0503" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_2c960755f6a64f8699ae0e4ac3fb0503 = echarts.init(
+            document.getElementById('2c960755f6a64f8699ae0e4ac3fb0503'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_2c960755f6a64f8699ae0e4ac3fb0503 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u6b4c\u66f2\u6570\u91cf",
+            "legendHoverLink": true,
+            "data": [
+                395,
+                245,
+                235,
+                218,
+                187,
+                187,
+                186,
+                181,
+                175,
+                167,
+                163,
+                159,
+                156,
+                142,
+                140,
+                137,
+                134,
+                134,
+                133,
+                129
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#91cc75"
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u6b4c\u66f2\u6570\u91cf"
+            ],
+            "selected": {},
+            "show": true,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "rotate": 30,
+                "margin": 8,
+                "interval": 0,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "HOYO-MiX",
+                "\u65b9\u5927\u540c",
+                "\u6797\u4fca\u6770",
+                "\u6c6a\u82cf\u6cf7",
+                "G.E.M.\u9093\u7d2b\u68cb",
+                "999PUNKSTA",
+                "\u9676\u5586",
+                "\u9b54\u9b3c\u82b1\u56ed\uff08\u674e\u5b89\u5065\uff09",
+                "\u5b59\u71d5\u59ff",
+                "\u9648\u5955\u8fc5",
+                "akulamatata",
+                "\u5c39\u6614\u7720",
+                "\u8521\u5065\u96c5",
+                "\u4f59\u4f73\u8fd0",
+                "Taylor Swift",
+                "\u85e4\u4e95\u98a8",
+                "\u90d1\u6da6\u6cfd",
+                "\u65f6\u7a7a\u50a8\u84c4\u7f50",
+                "\u738b\u529b\u5b8f",
+                "The Weeknd"
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "name": "\u6b4c\u66f2\u6570\u91cf",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83c\udfa4 TOP20 \u70ed\u95e8\u6b4c\u624b",
+            "target": "blank",
+            "subtext": "\u6309\u6b4c\u66f2\u6570\u91cf\u6392\u5e8f",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ]
+};
+        chart_2c960755f6a64f8699ae0e4ac3fb0503.setOption(option_2c960755f6a64f8699ae0e4ac3fb0503);
+            window.addEventListener('resize', function(){
+                chart_2c960755f6a64f8699ae0e4ac3fb0503.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-11">
+                <div class="chart-card">
+                    <div id="2e4dd99039c942e282fe4f8098cf8a7b" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_2e4dd99039c942e282fe4f8098cf8a7b = echarts.init(
+            document.getElementById('2e4dd99039c942e282fe4f8098cf8a7b'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_2e4dd99039c942e282fe4f8098cf8a7b = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "pie",
+            "colorBy": "data",
+            "legendHoverLink": true,
+            "selectedMode": false,
+            "selectedOffset": 10,
+            "clockwise": true,
+            "startAngle": 90,
+            "minAngle": 0,
+            "minShowLabelAngle": 0,
+            "avoidLabelOverlap": true,
+            "stillShowZeroSum": true,
+            "percentPrecision": 2,
+            "showEmptyCircle": true,
+            "emptyCircleStyle": {
+                "color": "lightgray",
+                "borderColor": "#000",
+                "borderWidth": 0,
+                "borderType": "solid",
+                "borderDashOffset": 0,
+                "borderCap": "butt",
+                "borderJoin": "bevel",
+                "borderMiterLimit": 10,
+                "opacity": 1
+            },
+            "data": [
+                {
+                    "name": "\u6781\u77ed(\u22642\u5206\u949f)",
+                    "value": 2714
+                },
+                {
+                    "name": "\u77ed(2-3\u5206\u949f)",
+                    "value": 10276
+                },
+                {
+                    "name": "\u4e2d\u7b49(3-5\u5206\u949f)",
+                    "value": 29247
+                },
+                {
+                    "name": "\u957f(5-7\u5206\u949f)",
+                    "value": 2861
+                },
+                {
+                    "name": "\u8d85\u957f(>7\u5206\u949f)",
+                    "value": 535
+                }
+            ],
+            "radius": [
+                "35%",
+                "70%"
+            ],
+            "center": [
+                "55%",
+                "55%"
+            ],
+            "roseType": "area",
+            "label": {
+                "show": true,
+                "margin": 8,
+                "fontSize": 12,
+                "formatter": "{b}\n{c}\u9996 ({d}%)",
+                "valueAnimation": false
+            },
+            "labelLine": {
+                "show": true,
+                "showAbove": false,
+                "length": 15,
+                "length2": 15,
+                "smooth": false,
+                "minTurnAngle": 90,
+                "maxSurfaceAngle": 90
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u6781\u77ed(\u22642\u5206\u949f)",
+                "\u77ed(2-3\u5206\u949f)",
+                "\u4e2d\u7b49(3-5\u5206\u949f)",
+                "\u957f(5-7\u5206\u949f)",
+                "\u8d85\u957f(>7\u5206\u949f)"
+            ],
+            "selected": {},
+            "show": true,
+            "left": "2%",
+            "top": "20%",
+            "orient": "vertical",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "title": [
+        {
+            "show": true,
+            "text": "\u23f1\ufe0f \u6b4c\u66f2\u65f6\u957f\u5206\u5e03",
+            "target": "blank",
+            "subtext": "\u603b\u8ba1 45633 \u9996\u6b4c\u66f2",
+            "subtarget": "blank",
+            "left": "center",
+            "top": "2%",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "color": [
+        "#FF6B6B",
+        "#4ECDC4",
+        "#45B7D1",
+        "#96CEB4",
+        "#FFEAA7"
+    ]
+};
+        chart_2e4dd99039c942e282fe4f8098cf8a7b.setOption(option_2e4dd99039c942e282fe4f8098cf8a7b);
+            window.addEventListener('resize', function(){
+                chart_2e4dd99039c942e282fe4f8098cf8a7b.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-12">
+                <div class="chart-card">
+                    <div id="ebb9da6625804f7b91146e75d5a860e3" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_ebb9da6625804f7b91146e75d5a860e3 = echarts.init(
+            document.getElementById('ebb9da6625804f7b91146e75d5a860e3'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_ebb9da6625804f7b91146e75d5a860e3 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u51fa\u73b0\u6b21\u6570",
+            "legendHoverLink": true,
+            "data": [
+                35,
+                34,
+                30,
+                29,
+                28,
+                28,
+                27,
+                27,
+                26,
+                26,
+                26,
+                25,
+                25,
+                24,
+                24,
+                23,
+                23,
+                23,
+                23,
+                23,
+                22,
+                22,
+                22,
+                21,
+                21,
+                21,
+                21,
+                21,
+                21,
+                21
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#73c0de"
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u51fa\u73b0\u6b21\u6570"
+            ],
+            "selected": {},
+            "show": true,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "rotate": 45,
+                "margin": 8,
+                "interval": 0,
+                "fontSize": 9,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "The Way I Still Love...",
+                "Die For You",
+                "Peaches",
+                "Call You Tonight",
+                "Come Around Me",
+                "Starboy",
+                "\u4e8e\u662f",
+                "\u6211\u6000\u5ff5\u7684",
+                "double take",
+                "\u9ea6\u6069\u8389",
+                "\u7279\u522b\u7684\u4eba",
+                "\u7231\u9519",
+                "Psycho, Pt. 2",
+                "Nothin' on Me",
+                "\u5b64\u72ec\u60a3\u8005",
+                "Snooze",
+                "\u4e24 \u96be",
+                "\u731c\u4e0d\u900f",
+                "\u591a\u8fdc\u90fd\u8981\u5728\u4e00\u8d77",
+                "\u6dd8\u6c70",
+                "Fallin' Out",
+                "\u7d20\u989c",
+                "\u7ea2\u8272\u9ad8\u8ddf\u978b",
+                "Calling My Phone",
+                "Shut up My Moms Call...",
+                "\u552f\u4e00",
+                "\u7231\u60c5\u8baf\u606f",
+                "\u6700\u540e\u4e00\u9875",
+                "\u6076\u4f5c\u5267",
+                "APT."
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "name": "\u6b4c\u5355\u6570\u91cf",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83d\udd25 \u8de8\u6b4c\u5355\u70ed\u95e8\u6b4c\u66f2 TOP30",
+            "target": "blank",
+            "subtext": "\u81f3\u5c11\u51fa\u73b0\u57283\u4e2a\u6b4c\u5355\u4e2d",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "dataZoom": [
+        {
+            "show": true,
+            "type": "slider",
+            "showDetail": true,
+            "showDataShadow": true,
+            "realtime": true,
+            "start": 20,
+            "end": 60,
+            "orient": "horizontal",
+            "zoomLock": false,
+            "filterMode": "filter"
+        }
+    ]
+};
+        chart_ebb9da6625804f7b91146e75d5a860e3.setOption(option_ebb9da6625804f7b91146e75d5a860e3);
+            window.addEventListener('resize', function(){
+                chart_ebb9da6625804f7b91146e75d5a860e3.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-13">
+                <div class="chart-card">
+                    <div id="1ecaf10607d040f4a5d358b9796931f6" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_1ecaf10607d040f4a5d358b9796931f6 = echarts.init(
+            document.getElementById('1ecaf10607d040f4a5d358b9796931f6'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_1ecaf10607d040f4a5d358b9796931f6 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "scatter",
+            "name": "\u4e13\u8f91",
+            "symbolSize": 12,
+            "data": [
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    11,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    5,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    5,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    5,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    6,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    5,
+                    100.0
+                ],
+                [
+                    9,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    7,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    6,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    4,
+                    100.0
+                ],
+                [
+                    4,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    7,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    8,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    6,
+                    100.0
+                ],
+                [
+                    5,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    4,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    6,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    8,
+                    100.0
+                ],
+                [
+                    4,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    3,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    15,
+                    100.0
+                ],
+                [
+                    2,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ],
+                [
+                    1,
+                    100.0
+                ]
+            ],
+            "label": {
+                "show": false,
+                "margin": 8,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#FF6B6B",
+                "opacity": 0.7
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u4e13\u8f91"
+            ],
+            "selected": {},
+            "show": true,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "type": "value",
+            "name": "\u6b4c\u66f2\u6570\u91cf",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                1,
+                1,
+                2,
+                2,
+                3,
+                3,
+                1,
+                2,
+                1,
+                2,
+                1,
+                11,
+                3,
+                1,
+                1,
+                2,
+                1,
+                5,
+                1,
+                2,
+                2,
+                5,
+                2,
+                1,
+                1,
+                3,
+                5,
+                1,
+                1,
+                2,
+                6,
+                1,
+                1,
+                5,
+                9,
+                1,
+                1,
+                7,
+                2,
+                1,
+                1,
+                6,
+                3,
+                1,
+                1,
+                4,
+                4,
+                3,
+                2,
+                1,
+                2,
+                2,
+                1,
+                2,
+                3,
+                1,
+                3,
+                7,
+                2,
+                3,
+                2,
+                8,
+                2,
+                2,
+                1,
+                2,
+                1,
+                1,
+                1,
+                6,
+                5,
+                2,
+                1,
+                1,
+                2,
+                1,
+                1,
+                4,
+                1,
+                3,
+                2,
+                1,
+                6,
+                1,
+                8,
+                4,
+                2,
+                2,
+                1,
+                2,
+                2,
+                3,
+                1,
+                1,
+                2,
+                1,
+                15,
+                2,
+                1,
+                1
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "type": "value",
+            "name": "\u5e73\u5747\u70ed\u5ea6",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83d\udcbf \u4e13\u8f91\u70ed\u5ea6\u5206\u6790 TOP100",
+            "target": "blank",
+            "subtext": "\u6b4c\u66f2\u6570\u91cf vs \u5e73\u5747\u70ed\u5ea6",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ],
+    "visualMap": {
+        "show": true,
+        "type": "continuous",
+        "min": 1,
+        "max": 15,
+        "inRange": {
+            "symbolSize": [
+                20,
+                50
+            ]
+        },
+        "calculable": true,
+        "inverse": false,
+        "splitNumber": 5,
+        "dimension": 0,
+        "hoverLink": true,
+        "orient": "vertical",
+        "padding": 5,
+        "showLabel": true,
+        "itemWidth": 20,
+        "itemHeight": 140,
+        "borderWidth": 0
+    }
+};
+        chart_1ecaf10607d040f4a5d358b9796931f6.setOption(option_1ecaf10607d040f4a5d358b9796931f6);
+            window.addEventListener('resize', function(){
+                chart_1ecaf10607d040f4a5d358b9796931f6.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-14">
+                <div class="chart-card">
+                    <div id="8790e350d6d847ff864f73920b111aa9" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_8790e350d6d847ff864f73920b111aa9 = echarts.init(
+            document.getElementById('8790e350d6d847ff864f73920b111aa9'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_8790e350d6d847ff864f73920b111aa9 = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "\u6b4c\u66f2\u6570\u91cf",
+            "legendHoverLink": true,
+            "data": [
+                2262,
+                2774,
+                1906,
+                4429,
+                34262
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "20%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "top",
+                "margin": 8,
+                "fontSize": 12,
+                "valueAnimation": false
+            },
+            "itemStyle": {
+                "color": "#3ba272"
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "\u6b4c\u66f2\u6570\u91cf"
+            ],
+            "selected": {},
+            "show": true,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": false,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "axisLabel": {
+                "show": true,
+                "margin": 8,
+                "fontSize": 12,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "\u4f4e\u70ed\u5ea6(0-20)",
+                "\u4e2d\u4f4e(21-40)",
+                "\u4e2d\u7b49(41-60)",
+                "\u4e2d\u9ad8(61-80)",
+                "\u9ad8\u70ed\u5ea6(81-100)"
+            ]
+        }
+    ],
+    "yAxis": [
+        {
+            "name": "\u6b4c\u66f2\u6570\u91cf",
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83d\udcca \u6b4c\u66f2\u70ed\u5ea6\u5206\u5e03",
+            "target": "blank",
+            "subtext": "\u603b\u8ba1 45633 \u9996\u6b4c\u66f2",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ]
+};
+        chart_8790e350d6d847ff864f73920b111aa9.setOption(option_8790e350d6d847ff864f73920b111aa9);
+            window.addEventListener('resize', function(){
+                chart_8790e350d6d847ff864f73920b111aa9.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+
+            <div class="page-section" id="page-15">
+                <div class="chart-card">
+                    <div id="b13705a66df945c09ec3a164ed046a2f" class="chart-container" style="width:100%; height:650px; "></div>
+    <script>
+        var chart_b13705a66df945c09ec3a164ed046a2f = echarts.init(
+            document.getElementById('b13705a66df945c09ec3a164ed046a2f'), 'macarons', {renderer: 'canvas', locale: 'ZH'});
+        var option_b13705a66df945c09ec3a164ed046a2f = {
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 1000,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "radar",
+            "data": [
+                {
+                    "value": [
+                        100.0,
+                        59.1,
+                        50,
+                        9.2
+                    ],
+                    "name": "HOYO-MiX",
+                    "itemStyle": {
+                        "color": "#FF6B6B"
+                    }
+                },
+                {
+                    "value": [
+                        29.9,
+                        99.7,
+                        50,
+                        84.4
+                    ],
+                    "name": "\u65b9\u5927\u540c",
+                    "itemStyle": {
+                        "color": "#4ECDC4"
+                    }
+                },
+                {
+                    "value": [
+                        25.2,
+                        100.0,
+                        50,
+                        98.4
+                    ],
+                    "name": "\u6797\u4fca\u6770",
+                    "itemStyle": {
+                        "color": "#45B7D1"
+                    }
+                },
+                {
+                    "value": [
+                        17.3,
+                        94.3,
+                        50,
+                        84.7
+                    ],
+                    "name": "\u6c6a\u82cf\u6cf7",
+                    "itemStyle": {
+                        "color": "#96CEB4"
+                    }
+                },
+                {
+                    "value": [
+                        2.8,
+                        86.5,
+                        50,
+                        9.5
+                    ],
+                    "name": "999PUNKSTA",
+                    "itemStyle": {
+                        "color": "#FFEAA7"
+                    }
+                },
+                {
+                    "value": [
+                        2.8,
+                        99.9,
+                        50,
+                        81.8
+                    ],
+                    "name": "G.E.M.\u9093\u7d2b\u68cb",
+                    "itemStyle": {
+                        "color": "#DDA0DD"
+                    }
+                },
+                {
+                    "value": [
+                        2.3,
+                        99.3,
+                        50,
+                        100.0
+                    ],
+                    "name": "\u9676\u5586",
+                    "itemStyle": {
+                        "color": "#98D8C8"
+                    }
+                },
+                {
+                    "value": [
+                        0.0,
+                        0.0,
+                        50,
+                        0.0
+                    ],
+                    "name": "\u9b54\u9b3c\u82b1\u56ed\uff08\u674e\u5b89\u5065\uff09",
+                    "itemStyle": {
+                        "color": "#F7DC6F"
+                    }
+                }
+            ],
+            "label": {
+                "show": true,
+                "margin": 8,
+                "valueAnimation": false
+            },
+            "selectedMode": false,
+            "zlevel": 0,
+            "z": 2,
+            "itemStyle": {
+                "normal": {}
+            },
+            "lineStyle": {
+                "show": true,
+                "width": 1,
+                "opacity": 1,
+                "curveness": 0,
+                "type": "solid"
+            },
+            "areaStyle": {
+                "opacity": 0.2
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                ""
+            ],
+            "selected": {},
+            "show": true,
+            "left": "center",
+            "top": "12%",
+            "orient": "horizontal",
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "radar": [
+        {
+            "indicator": [
+                {
+                    "name": "\u6b4c\u66f2\u6570\u91cf",
+                    "max": 100
+                },
+                {
+                    "name": "\u5e73\u5747\u70ed\u5ea6",
+                    "max": 100
+                },
+                {
+                    "name": "\u6700\u9ad8\u70ed\u5ea6",
+                    "max": 100
+                },
+                {
+                    "name": "\u5e73\u5747\u65f6\u957f",
+                    "max": 100
+                }
+            ],
+            "shape": "polygon",
+            "center": [
+                "50%",
+                "58%"
+            ],
+            "radius": "65%",
+            "startAngle": 90,
+            "name": {
+                "textStyle": {}
+            },
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "splitArea": {
+                "show": true,
+                "areaStyle": {
+                    "opacity": 0
+                }
+            },
+            "axisLine": {
+                "show": true,
+                "onZero": true,
+                "onZeroAxisIndex": 0
+            }
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "\ud83c\udf1f TOP8 \u6b4c\u624b\u80fd\u529b\u96f7\u8fbe\u56fe",
+            "target": "blank",
+            "subtext": "\u591a\u7ef4\u5ea6\u80fd\u529b\u5206\u6790",
+            "subtarget": "blank",
+            "left": "center",
+            "top": "2%",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "fontWeight": "bold",
+                "fontSize": 22
+            }
+        }
+    ]
+};
+        chart_b13705a66df945c09ec3a164ed046a2f.setOption(option_b13705a66df945c09ec3a164ed046a2f);
+            window.addEventListener('resize', function(){
+                chart_b13705a66df945c09ec3a164ed046a2f.resize();
+            })
+    </script>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- 页脚 -->
+        <div class="modern-footer">
+            <p>📊 网易云音乐热门歌单数据分析报告</p>
+            <p>数据来源: 网易云音乐 | 分析工具: Python + Pyecharts</p>
+            <p>© 2025 Music Data Analysis Project</p>
+        </div>
+    </div>
+    
+    <!-- 返回顶部按钮 -->
+    <button class="back-top-btn" onclick="scrollToTop()">↑</button>
+    
+    <script>
+        // 页面导航
+        function navigateTo(pageIndex) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // 显示目标页面
+            const targetPage = document.getElementById('page-' + pageIndex);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+            
+            // 更新导航按钮状态
+            document.querySelectorAll('.nav-item').forEach((btn, index) => {
+                if (index === pageIndex) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 平滑滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // 调整当前页面的图表大小
+            resizeCurrentPageCharts();
+        }
+        
+        // 返回顶部
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // 监听滚动事件
+        window.addEventListener('scroll', () => {
+            const backBtn = document.querySelector('.back-top-btn');
+            if (window.pageYOffset > 300) {
+                backBtn.classList.add('show');
+            } else {
+                backBtn.classList.remove('show');
+            }
+        });
+        
+        // 键盘导航支持
+        document.addEventListener('keydown', (e) => {
+            const pages = document.querySelectorAll('.page-section');
+            const currentIndex = Array.from(pages).findIndex(page => 
+                page.classList.contains('active')
+            );
+            
+            if (e.key === 'ArrowRight' && currentIndex < pages.length - 1) {
+                navigateTo(currentIndex + 1);
+            } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                navigateTo(currentIndex - 1);
+            }
+        });
+        
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📊 网易云音乐数据分析报告已加载');
+            
+            // 添加图表加载动画
+            const charts = document.querySelectorAll('.chart-card');
+            charts.forEach((chart, index) => {
+                setTimeout(() => {
+                    chart.style.animation = 'fadeInUp 0.5s ease-out';
+                }, index * 100);
+            });
+            
+            // 强制调整所有ECharts图表大小
+            setTimeout(() => {
+                if (window.echarts) {
+                    const echartsInstances = document.querySelectorAll('[_echarts_instance_]');
+                    echartsInstances.forEach(dom => {
+                        const instance = echarts.getInstanceByDom(dom);
+                        if (instance) {
+                            instance.resize();
+                        }
+                    });
+                }
+            }, 500);
+        });
+        
+        // 监听窗口大小变化，自动调整图表
+        window.addEventListener('resize', () => {
+            if (window.echarts) {
+                const echartsInstances = document.querySelectorAll('[_echarts_instance_]');
+                echartsInstances.forEach(dom => {
+                    const instance = echarts.getInstanceByDom(dom);
+                    if (instance) {
+                        instance.resize();
+                    }
+                });
+            }
+        });
+        
+        // 页面切换时也调整图表大小
+        function resizeCurrentPageCharts() {
+            setTimeout(() => {
+                const activePage = document.querySelector('.page-section.active');
+                if (activePage && window.echarts) {
+                    const charts = activePage.querySelectorAll('[_echarts_instance_]');
+                    charts.forEach(dom => {
+                        const instance = echarts.getInstanceByDom(dom);
+                        if (instance) {
+                            instance.resize();
+                        }
+                    });
+                }
+            }, 100);
+        }
+        </script>
+</body>
+</html>

@@ -43,7 +43,7 @@ class MusicAnalysisApp:
         print("  1. 爬取热门歌单数据")
         print("  2. 爬取歌单内的歌曲")
         print("  3. 数据分析")
-        print("  4. 生成可视化报告")
+        print("  4. 生成可视化报告 ⭐")
         print("  5. 查看数据库统计")
         print("  6. 导出数据为CSV")
         print("  7. 清空数据库")
@@ -327,9 +327,9 @@ class MusicAnalysisApp:
             logger.error(f"数据分析失败: {e}")
             print(f"[X] 分析失败: {e}")
     
-    def generate_report(self):
-        """生成热门歌单可视化报告功能"""
-        print("\n【生成热门歌单可视化报告】")
+    def generate_modern_report(self):
+        """生成可视化报告功能"""
+        print("\n【生成可视化报告】")
         print("-"*60)
         
         try:
@@ -339,52 +339,92 @@ class MusicAnalysisApp:
                 print("\n[提示] 数据库中暂无歌单数据，请先爬取数据")
                 return
             
-            print(f"\n当前数据库中有 {stats.get('total_playlists', 0)} 个歌单")
-            print("\n正在生成交互式可视化报告...")
-            print("\n报告特点:")
-            print("  - 美观的网页界面设计")
-            print("  - 顶部菜单导航，可切换9个页面")
-            print("  - 统计卡片展示关键数据")
-            print("  - 支持键盘左右方向键切换")
-            print("  - 所有图表支持交互、缩放、悬停提示")
-            print("\n包含图表:")
-            print("  1. [概览] 数据说明和使用指南")
-            print("  2. [播放排行] TOP30热门歌单播放量排行榜")
-            print("  3. [收藏排行] TOP30热门歌单收藏数排行榜")
-            print("  4. [对比分析] 播放量与收藏数双维度对比")
-            print("  5. [标签分布] 热门歌单标签分类统计")
-            print("  6. [创建者排行] 歌单创建者贡献度分析")
-            print("  7. [关系分析] 播放量与收藏数关系散点图")
-            print("  8. [规模分布] 歌单大小规模分类统计")
-            print("  9. [标签词云] 热门标签词云可视化")
+            print(f"\n📊 当前数据库统计:")
+            print(f"  • 歌单总数: {stats.get('total_playlists', 0):,}")
+            print(f"  • 歌曲总数: {stats.get('total_song_records', 0):,}")
+            print(f"  • 唯一歌曲: {stats.get('unique_songs', 0):,}")
+            print(f"  • 歌手数量: {stats.get('total_artists', 0):,}")
+            print(f"  • 专辑数量: {stats.get('total_albums', 0):,}")
             
-            print("\n提示: 生成过程可能需要10-30秒...")
+            print("\n✨ 报告特点:")
+            print("  • 现代化渐变色UI设计")
+            print("  • 响应式布局，适配各种屏幕")
+            print("  • 流畅的页面切换动画")
+            print("  • 顶部横向导航菜单")
+            print("  • 支持键盘左右箭头快速切换")
+            print("  • 8个统计卡片展示关键指标")
+            print("  • 所有图表支持交互、缩放、悬停提示")
             
-            # 导入可视化模块
-            from visualization.charts_generator import ChartsGenerator
+            print("\n📈 包含的15个可视化图表:")
+            print("\n  【歌单分析】(8个)")
+            print("    1. 🏆 播放量排行 - TOP30热门歌单")
+            print("    2. ⭐ 收藏数排行 - TOP30热门歌单")
+            print("    3. 📊 对比分析 - 播放量vs收藏数")
+            print("    4. 🏷️  标签分布 - 热门标签饼图")
+            print("    5. 👥 创建者排行 - 贡献度分析")
+            print("    6. 💫 关系分析 - 散点图")
+            print("    7. 📦 规模分布 - 歌单大小分类")
+            print("    8. ☁️  标签词云 - 可视化")
+            
+            print("\n  【歌曲分析】(7个)")
+            print("    9.  🎵 热门歌曲 - TOP30排行榜")
+            print("    10. 🎤 歌手排行 - TOP20歌手")
+            print("    11. ⏱️  时长分布 - 歌曲时长饼图")
+            print("    12. 🔥 跨歌单热歌 - 多歌单热门歌曲")
+            print("    13. 💿 专辑热度 - 散点分析")
+            print("    14. 📊 热度分布 - 区间统计")
+            print("    15. 🌟 歌手雷达 - 多维度能力分析")
+            
+            print("\n⏱️  提示: 生成过程约需10-20秒...")
+            
+            confirm = input("\n是否开始生成? (y/n, 默认y): ").strip().lower()
+            if confirm and confirm != 'y':
+                print("已取消生成")
+                return
+            
+            print("\n" + "-"*60)
+            print("正在生成报告，请稍候...")
+            print("-"*60)
+            
+            # 导入现代化可视化模块
+            from visualization.modern_report_generator import ModernReportGenerator
             
             # 生成报告
-            generator = ChartsGenerator(self.db)
+            generator = ModernReportGenerator(self.db)
             report_path = generator.generate_report()
             
             if report_path and os.path.exists(report_path):
-                print(f"\n[OK] 报告已生成: {report_path}")
+                file_size = os.path.getsize(report_path) / 1024
+                print("\n" + "="*60)
+                print("🎉 报告生成成功！")
+                print("="*60)
+                print(f"\n📄 文件信息:")
+                print(f"  • 路径: {report_path}")
+                print(f"  • 大小: {file_size:.1f} KB")
+                print(f"\n💡 使用提示:")
+                print(f"  1. 在浏览器中打开该HTML文件")
+                print(f"  2. 使用顶部导航按钮切换不同图表")
+                print(f"  3. 支持键盘左右箭头快速切换页面")
+                print(f"  4. 鼠标悬停可查看详细数据")
                 
                 # 询问是否打开报告
-                open_report = input("\n是否在浏览器中打开报告? (y/n): ").strip().lower()
-                if open_report == 'y':
+                open_report = input("\n是否在浏览器中打开报告? (y/n, 默认y): ").strip().lower()
+                if not open_report or open_report == 'y':
                     import webbrowser
                     webbrowser.open(f'file:///{os.path.abspath(report_path)}')
-                    print("已在浏览器中打开报告")
+                    print("✓ 已在浏览器中打开报告")
             else:
-                print("[X] 报告生成失败")
+                print("\n❌ 报告生成失败，请查看日志文件")
             
         except ImportError as e:
             logger.error(f"导入可视化模块失败: {e}")
-            print(f"[X] 缺少依赖: 请安装 pyecharts (pip install pyecharts)")
+            print(f"\n❌ 缺少依赖库")
+            print(f"   请运行: pip install pyecharts pandas")
         except Exception as e:
-            logger.error(f"生成报告失败: {e}")
-            print(f"[X] 生成报告失败: {e}")
+            logger.error(f"生成现代化报告失败: {e}")
+            print(f"\n❌ 生成报告失败: {e}")
+            import traceback
+            traceback.print_exc()
     
     def show_statistics(self):
         """显示数据库统计信息"""
@@ -498,13 +538,15 @@ class MusicAnalysisApp:
     
     def run(self):
         """运行主程序"""
-        print("\n欢迎使用网易云音乐数据分析系统!")
+        print("\n" + "🎵"*30)
+        print("    欢迎使用网易云音乐数据分析系统!")
+        print("🎵"*30)
         logger.info("程序启动")
         
         while True:
             try:
                 self.show_menu()
-                choice = input("\n请选择功能 (0-7): ").strip()
+                choice = input("\n请选择功能 (0-8): ").strip()
                 
                 if choice == '1':
                     self.crawl_hot_playlists()
@@ -513,7 +555,7 @@ class MusicAnalysisApp:
                 elif choice == '3':
                     self.analyze_data()
                 elif choice == '4':
-                    self.generate_report()
+                    self.generate_modern_report()
                 elif choice == '5':
                     self.show_statistics()
                 elif choice == '6':
@@ -521,18 +563,20 @@ class MusicAnalysisApp:
                 elif choice == '7':
                     self.clear_database()
                 elif choice == '0':
-                    print("\n感谢使用,再见!")
+                    print("\n" + "="*60)
+                    print("  感谢使用，再见！")
+                    print("="*60)
                     logger.info("程序正常退出")
                     break
                 else:
-                    print("\n[X] 无效的选择,请重新输入")
+                    print("\n[X] 无效的选择，请重新输入")
                 
                 # 暂停以便查看结果
-                if choice in ['1', '2', '3', '4', '5', '6', '7']:
+                if choice in ['1', '2', '3', '4', '5', '6', '7', '8']:
                     input("\n按回车键继续...")
                 
             except KeyboardInterrupt:
-                print("\n\n检测到中断信号,退出程序")
+                print("\n\n检测到中断信号，退出程序")
                 logger.info("程序被用户中断")
                 break
             except Exception as e:
