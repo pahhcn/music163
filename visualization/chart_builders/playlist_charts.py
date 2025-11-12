@@ -279,7 +279,8 @@ class PlaylistChartsBuilder(BaseChartBuilder):
                         pos_left="center",
                         pos_top="2%"
                     ),
-                    legend_opts=opts.LegendOpts(orient="vertical", pos_left="2%", pos_top="20%")
+                    legend_opts=opts.LegendOpts(orient="vertical", pos_left="2%", pos_top="20%"),
+                    tooltip_opts=opts.TooltipOpts(is_show=False)
                 )
                 .set_colors(self.colors)
             )
@@ -302,22 +303,25 @@ class PlaylistChartsBuilder(BaseChartBuilder):
                         if tag:
                             tags_count[tag] = tags_count.get(tag, 0) + 1
             
-            word_data = [(tag, count) for tag, count in tags_count.items()]
+            # 只显示前50个最热门标签，避免词云过于拥挤
+            sorted_tags = sorted(tags_count.items(), key=lambda x: x[1], reverse=True)[:50]
+            word_data = [(tag, count) for tag, count in sorted_tags]
             
             return (
                 WordCloud(init_opts=opts.InitOpts(theme=self.theme, width="100%", height="650px"))
                 .add(
                     "",
                     word_data,
-                    word_size_range=[20, 100],
+                    word_size_range=[18, 80],
                     shape='circle'
                 )
                 .set_global_opts(
                     title_opts=opts.TitleOpts(
-                        title="☁️ 热门标签词云",
-                        subtitle=f"共 {len(tags_count)} 个标签",
+                        title="☁️ 热门标签词云 TOP50",
+                        subtitle=f"展示前50个热门标签（总计 {len(tags_count)} 个标签）",
                         title_textstyle_opts=opts.TextStyleOpts(font_size=22, font_weight="bold")
-                    )
+                    ),
+                    tooltip_opts=opts.TooltipOpts(is_show=False)
                 )
             )
         except Exception as e:

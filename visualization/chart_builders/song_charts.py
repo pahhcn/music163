@@ -127,7 +127,8 @@ class SongChartsBuilder(BaseChartBuilder):
                         pos_left="center",
                         pos_top="2%"
                     ),
-                    legend_opts=opts.LegendOpts(orient="vertical", pos_left="2%", pos_top="20%")
+                    legend_opts=opts.LegendOpts(orient="vertical", pos_left="2%", pos_top="20%"),
+                    tooltip_opts=opts.TooltipOpts(is_show=False)
                 )
                 .set_colors(['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'])
             )
@@ -195,22 +196,32 @@ class SongChartsBuilder(BaseChartBuilder):
             album_stats.columns = ['album', 'song_count', 'avg_popularity']
             album_stats = album_stats.sort_values('avg_popularity', ascending=False).head(top_n)
             
-            data = [[row['song_count'], row['avg_popularity']] for _, row in album_stats.iterrows()]
+            # 准备数据，包含专辑名称
+            data = [[row['song_count'], row['avg_popularity'], row['album'][:12]] 
+                    for _, row in album_stats.iterrows()]
+            
+            if not data:
+                return self._create_empty_chart("专辑热度分析", f"数据不足以生成TOP{top_n}专辑图表")
             
             return (
                 Scatter(init_opts=opts.InitOpts(theme=self.theme, width="100%", height="650px"))
                 .add_xaxis([d[0] for d in data])
                 .add_yaxis(
                     "专辑",
-                    [d[1] for d in data],
-                    symbol_size=12,
-                    label_opts=opts.LabelOpts(is_show=False),
+                    [{'value': d[1], 'name': d[2]} for d in data],
+                    symbol_size=10,
+                    label_opts=opts.LabelOpts(
+                        is_show=True,
+                        position="right",
+                        font_size=8,
+                        color='#333'
+                    ),
                     itemstyle_opts=opts.ItemStyleOpts(color='#FF6B6B', opacity=0.7)
                 )
                 .set_global_opts(
                     title_opts=opts.TitleOpts(
                         title=f"💿 专辑热度分析 TOP{top_n}",
-                        subtitle="歌曲数量 vs 平均热度",
+                        subtitle="横轴: 歌曲数量 | 纵轴: 平均热度 | 标签: 专辑名",
                         title_textstyle_opts=opts.TextStyleOpts(font_size=22, font_weight="bold")
                     ),
                     xaxis_opts=opts.AxisOpts(name="歌曲数量", type_="value"),
@@ -322,13 +333,15 @@ class SongChartsBuilder(BaseChartBuilder):
                 .add("", radar_data, areastyle_opts=opts.AreaStyleOpts(opacity=0.2))
                 .set_global_opts(
                     title_opts=opts.TitleOpts(
-                        title=f"🌟 TOP{top_n} 歌手能力雷达图",
-                        subtitle="多维度能力分析",
+                        title=f"🌟 TOP{top_n} 歌手综合能力雷达图",
+                        subtitle="四个维度对比：歌曲数量(作品量) | 平均热度(受欢迎度) | 最高热度(爆款能力) | 平均时长(作品风格)\n数值为归一化后的相对评分(0-100)，数值越大表示该维度表现越好",
                         title_textstyle_opts=opts.TextStyleOpts(font_size=22, font_weight="bold"),
+                        subtitle_textstyle_opts=opts.TextStyleOpts(font_size=12, color="#666"),
                         pos_left="center",
                         pos_top="2%"
                     ),
-                    legend_opts=opts.LegendOpts(pos_top="12%", pos_left="center", orient="horizontal")
+                    legend_opts=opts.LegendOpts(pos_top="15%", pos_left="center", orient="horizontal"),
+                    tooltip_opts=opts.TooltipOpts(is_show=False)
                 )
             )
         except Exception as e:

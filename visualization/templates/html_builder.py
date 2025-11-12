@@ -513,8 +513,8 @@ class ModernHTMLBuilder:
                 }
             });
             
-            // 平滑滚动到顶部
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // 不自动滚动到顶部，保持当前滚动位置
+            // window.scrollTo({ top: 0, behavior: 'smooth' });
             
             // 调整当前页面的图表大小
             resizeCurrentPageCharts();
@@ -614,29 +614,26 @@ class ModernHTMLBuilder:
         :param nav_items: 导航项列表
         :return: 完整HTML字符串
         """
-        # 构建统计卡片
+        # 构建统计卡片 - 修复数据显示问题
+        total_play = stats.get('total_playlist_play_count', 0)
+        total_sub = stats.get('total_playlist_subscribe_count', 0)
+        
         stats_cards = [
             ('📊', stats.get('total_playlists', 0), '总歌单数'),
             ('🎵', stats.get('total_song_records', 0), '总歌曲数'),
             ('🎤', stats.get('total_artists', 0), '歌手数量'),
             ('💿', stats.get('total_albums', 0), '专辑数量'),
-            ('🔥', f"{stats.get('avg_popularity', 0):.1f}", '平均热度'),
+            ('🔥', round(stats.get('avg_popularity', 0), 1), '平均热度'),
             ('⭐', stats.get('unique_songs', 0), '唯一歌曲'),
-            ('👥', f"{stats.get('total_playlist_play_count', 0) // 100000000:.1f}亿", '总播放量'),
-            ('💖', f"{stats.get('total_playlist_subscribe_count', 0) // 10000000:.1f}千万", '总收藏数'),
+            ('👥', f"{total_play / 100000000:.1f}亿" if total_play > 0 else '0', '总播放量'),
+            ('💖', f"{total_sub / 10000000:.1f}千万" if total_sub > 0 else '0', '总收藏数'),
         ]
         
         stats_html = '\n'.join([
             f'''
             <div class="stat-card">
                 <div class="icon">{icon}</div>
-                <div class="value">{value:,}</div>
-                <div class="label">{label}</div>
-            </div>
-            ''' if isinstance(value, int) else f'''
-            <div class="stat-card">
-                <div class="icon">{icon}</div>
-                <div class="value">{value}</div>
+                <div class="value">{value if not isinstance(value, (int, float)) else f"{value:,}"}</div>
                 <div class="label">{label}</div>
             </div>
             '''
