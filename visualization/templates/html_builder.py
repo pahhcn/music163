@@ -8,7 +8,7 @@ class ModernHTMLBuilder:
     
     @staticmethod
     def get_css_styles() -> str:
-        """获取现代化CSS样式"""
+        """获取网易云风格CSS样式"""
         return """
         * {
             margin: 0;
@@ -17,221 +17,152 @@ class ModernHTMLBuilder:
         }
         
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --success-color: #10b981;
-            --card-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            --card-shadow-hover: 0 8px 30px rgba(0,0,0,0.12);
-            --border-radius: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --netease-red: #EC4141;
+            --netease-dark: #2C2C2C;
+            --netease-gray: #F5F5F7;
+            --netease-text: #333333;
+            --netease-text-light: #666666;
+            --card-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
         }
         
         body {
-            font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            background: #F5F5F7;
             min-height: 100vh;
-            padding: 24px;
             line-height: 1.6;
         }
         
         .main-container {
-            max-width: 1800px;
+            max-width: 1400px;
             margin: 0 auto;
             background: #ffffff;
-            border-radius: 24px;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.25);
-            overflow: hidden;
-            animation: slideUp 0.6s ease-out;
+            min-height: 100vh;
         }
         
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* 现代化头部 */
+        /* 网易云风格头部 */
         .modern-header {
-            background: var(--primary-gradient);
+            background: var(--netease-red);
             color: white;
-            padding: 48px 40px;
-            text-align: center;
+            padding: 40px 40px 30px;
             position: relative;
-            overflow: hidden;
-        }
-        
-        .modern-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: pulse 15s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.1) rotate(180deg); }
         }
         
         .modern-header h1 {
-            font-size: 42px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            position: relative;
-            z-index: 1;
-            letter-spacing: -0.5px;
+            font-size: 28px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
         .modern-header p {
-            font-size: 16px;
-            opacity: 0.95;
-            position: relative;
-            z-index: 1;
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 300;
         }
         
         /* 统计卡片网格 */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 24px;
-            padding: 40px;
-            background: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            padding: 30px 40px;
+            background: #FAFAFA;
         }
         
         .stat-card {
             background: white;
-            padding: 28px;
-            border-radius: var(--border-radius);
+            padding: 24px 20px;
+            border-radius: 8px;
             text-align: center;
             box-shadow: var(--card-shadow);
             transition: var(--transition);
-            border: 1px solid #f0f0f0;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--primary-gradient);
-            transform: scaleX(0);
-            transition: transform 0.3s;
-        }
-        
-        .stat-card:hover::before {
-            transform: scaleX(1);
+            border: 1px solid #EEEEEE;
         }
         
         .stat-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--card-shadow-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: var(--netease-red);
         }
         
         .stat-card .icon {
-            font-size: 36px;
-            margin-bottom: 12px;
+            font-size: 32px;
+            margin-bottom: 10px;
             display: inline-block;
-            animation: bounce 2s infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
         }
         
         .stat-card .value {
-            font-size: 36px;
-            font-weight: 700;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 12px 0;
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--netease-red);
+            margin: 8px 0;
         }
         
         .stat-card .label {
-            font-size: 14px;
-            color: #6b7280;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 13px;
+            color: var(--netease-text-light);
+            font-weight: 400;
         }
         
-        /* 现代化导航栏 */
+        /* 网易云风格导航栏 */
         .sidebar-nav {
             position: sticky;
             top: 0;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
+            background: white;
             z-index: 1000;
-            border-bottom: 1px solid #e5e7eb;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            border-bottom: 1px solid #E5E5E5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .nav-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-            padding: 20px 40px;
-            max-width: 1800px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 16px 40px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
         .nav-item {
-            padding: 14px 20px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            color: #495057;
-            border: 2px solid transparent;
-            border-radius: 16px;
+            padding: 8px 16px;
+            background: white;
+            color: var(--netease-text);
+            border: 1px solid #E5E5E5;
+            border-radius: 20px;
             cursor: pointer;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 400;
             transition: var(--transition);
-            text-align: center;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
         
         .nav-item:hover {
-            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            border-color: #667eea;
+            background: #FFF5F5;
+            border-color: var(--netease-red);
+            color: var(--netease-red);
         }
         
         .nav-item.active {
-            background: var(--primary-gradient);
+            background: var(--netease-red);
             color: white;
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 6px 24px rgba(102, 126, 234, 0.5);
-            border-color: #764ba2;
+            border-color: var(--netease-red);
         }
         
-        /* 内容区域 - 充分利用空间 */
+        /* 内容区域 */
         .content-area {
-            padding: 40px;
-            max-width: 1800px;
+            padding: 30px 40px;
+            max-width: 1400px;
             margin: 0 auto;
             width: 100%;
+            background: #FAFAFA;
+            min-height: calc(100vh - 300px);
         }
         
         .page-section {
             display: none;
-            animation: fadeInUp 0.5s ease-out;
             width: 100%;
         }
         
@@ -239,49 +170,38 @@ class ModernHTMLBuilder:
             display: block;
         }
         
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
         .chart-card {
             background: white;
-            border-radius: var(--border-radius);
-            padding: 40px;
-            margin-bottom: 32px;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
             box-shadow: var(--card-shadow);
             transition: var(--transition);
-            border: 1px solid #f0f0f0;
+            border: 1px solid #EEEEEE;
             width: 100%;
         }
         
         .chart-card:hover {
-            box-shadow: var(--card-shadow-hover);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
         
         .chart-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #f3f4f6;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #F5F5F5;
         }
         
         .chart-header .icon {
-            font-size: 32px;
+            font-size: 20px;
         }
         
         .chart-header h3 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #111827;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--netease-text);
             flex-grow: 1;
         }
         
@@ -316,31 +236,31 @@ class ModernHTMLBuilder:
         
         /* 页脚 */
         .modern-footer {
-            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-            color: white;
-            padding: 40px;
+            background: var(--netease-dark);
+            color: #999999;
+            padding: 30px 40px;
             text-align: center;
+            font-size: 13px;
         }
         
         .modern-footer p {
-            margin: 8px 0;
-            opacity: 0.9;
+            margin: 6px 0;
         }
         
         /* 返回顶部按钮 */
         .back-top-btn {
             position: fixed;
-            bottom: 32px;
-            right: 32px;
-            width: 56px;
-            height: 56px;
-            background: var(--primary-gradient);
+            bottom: 40px;
+            right: 40px;
+            width: 48px;
+            height: 48px;
+            background: var(--netease-red);
             color: white;
             border: none;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 24px;
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(236, 65, 65, 0.3);
             transition: var(--transition);
             opacity: 0;
             visibility: hidden;
@@ -353,29 +273,8 @@ class ModernHTMLBuilder:
         }
         
         .back-top-btn:hover {
-            transform: translateY(-8px) scale(1.1);
-            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
-        }
-        
-        /* 主题切换按钮 */
-        .theme-toggle {
-            position: fixed;
-            top: 32px;
-            right: 32px;
-            width: 56px;
-            height: 56px;
-            background: white;
-            border: 2px solid #667eea;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-            transition: var(--transition);
-            z-index: 1002;
-        }
-        
-        .theme-toggle:hover {
-            transform: rotate(180deg) scale(1.1);
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(236, 65, 65, 0.4);
         }
         
         /* 响应式设计 */
@@ -461,15 +360,15 @@ class ModernHTMLBuilder:
         
         /* 概览页面样式 */
         .overview-content {
-            padding: 24px;
+            padding: 20px;
             line-height: 1.8;
         }
         
         .overview-content h3 {
-            color: #667eea;
-            margin: 32px 0 16px;
-            font-size: 20px;
-            font-weight: 700;
+            color: var(--netease-red);
+            margin: 24px 0 12px;
+            font-size: 16px;
+            font-weight: 500;
         }
         
         .overview-content h3:first-child {
@@ -477,13 +376,14 @@ class ModernHTMLBuilder:
         }
         
         .overview-content p {
-            margin: 12px 0;
-            color: #4b5563;
+            margin: 10px 0;
+            color: var(--netease-text-light);
+            font-size: 14px;
         }
         
         .overview-content strong {
-            color: #111827;
-            font-weight: 600;
+            color: var(--netease-text);
+            font-weight: 500;
         }
         """
     
@@ -684,7 +584,7 @@ class ModernHTMLBuilder:
             for i in range(len(nav_items))
         ])
         
-        # 构建概览页面（包含数据可视化）
+        # 构建概览页面
         overview_html = f'''
         <div class="chart-card">
             <div class="chart-header">
@@ -692,32 +592,39 @@ class ModernHTMLBuilder:
                 <h3>数据概览</h3>
             </div>
             <div class="overview-content">
-                <h3>📊 数据摘要</h3>
-                <p>• 本报告基于网易云音乐热门歌单数据生成</p>
-                <p>• 共采集 <strong>{stats.get('total_playlists', 0):,}</strong> 个歌单，<strong>{stats.get('total_song_records', 0):,}</strong> 首歌曲记录</p>
-                <p>• 包含 <strong>{stats.get('unique_songs', 0):,}</strong> 首唯一歌曲，<strong>{stats.get('total_artists', 0):,}</strong> 位歌手，<strong>{stats.get('total_albums', 0):,}</strong> 张专辑</p>
-                <p>• 总播放量: <strong>{stats.get('total_playlist_play_count', 0) / 100000000:.2f}</strong> 亿次，总收藏数: <strong>{stats.get('total_playlist_subscribe_count', 0) / 10000000:.2f}</strong> 千万</p>
+                <h3>数据来源</h3>
+                <p>本报告数据来自网易云音乐热门歌单，通过Python爬虫采集并分析。</p>
+                <p>采集时间：{datetime.now().strftime('%Y年%m月%d日')}</p>
                 
-                <h3>📈 图表导航</h3>
-                <p><strong>歌单分析（8个图表）：</strong>播放排行、收藏排行、对比分析、标签分布、创建者排行、关系分析、规模分布、标签词云</p>
-                <p><strong>歌曲分析（7个图表）：</strong>热门歌曲、歌手排行、时长分布、跨歌单热歌、专辑热度、热度分布、歌手雷达</p>
+                <h3>数据规模</h3>
+                <p>• 歌单总数：<strong>{stats.get('total_playlists', 0):,}</strong> 个</p>
+                <p>• 歌曲记录：<strong>{stats.get('total_song_records', 0):,}</strong> 条</p>
+                <p>• 唯一歌曲：<strong>{stats.get('unique_songs', 0):,}</strong> 首</p>
+                <p>• 歌手数量：<strong>{stats.get('total_artists', 0):,}</strong> 位</p>
+                <p>• 专辑数量：<strong>{stats.get('total_albums', 0):,}</strong> 张</p>
                 
-                <h3>🔍 关键发现</h3>
-                <p>• 平均每个歌单播放量: <strong>{stats.get('avg_playlist_play_count', 0):,.0f}</strong> 次</p>
-                <p>• 平均每个歌单收藏数: <strong>{stats.get('avg_subscribed_count', 0):,.0f}</strong> 人</p>
-                <p>• 平均每个歌单歌曲数: <strong>{stats.get('avg_track_count', 0):.0f}</strong> 首</p>
-                <p>• 最热门歌单播放量: <strong>{stats.get('max_playlist_play_count', 0):,}</strong> 次</p>
+                <h3>播放统计</h3>
+                <p>• 总播放量：<strong>{stats.get('total_playlist_play_count', 0) / 100000000:.1f}</strong> 亿次</p>
+                <p>• 总收藏数：<strong>{stats.get('total_playlist_subscribe_count', 0) / 10000000:.1f}</strong> 千万</p>
+                <p>• 平均播放量：<strong>{stats.get('avg_playlist_play_count', 0):,.0f}</strong> 次/歌单</p>
+                <p>• 平均收藏数：<strong>{stats.get('avg_subscribed_count', 0):,.0f}</strong> 人/歌单</p>
+                <p>• 最高播放量：<strong>{stats.get('max_playlist_play_count', 0):,}</strong> 次</p>
                 
-                <h3>💡 使用提示</h3>
-                <p>• 使用顶部导航按钮切换不同图表</p>
-                <p>• 所有图表支持鼠标悬停查看详细数据</p>
-                <p>• 支持键盘左右箭头键快速切换页面</p>
-                <p>• 建议使用Chrome、Edge等现代浏览器浏览</p>
+                <h3>图表说明</h3>
+                <p><strong>歌单分析（8个）</strong></p>
+                <p>播放排行、收藏排行、对比分析、标签分布、创建者排行、关系分析、规模分布、标签词云</p>
+                <p><strong>歌曲分析（7个）</strong></p>
+                <p>热门歌曲、歌手排行、时长分布、跨歌单热歌、专辑热度、热度分布、歌手雷达</p>
                 
-                <h3>⚠️ 数据说明</h3>
-                <p>• 由于网易云API限制，歌曲的"热度值"字段缺乏区分度（多数为100）</p>
-                <p>• 因此本报告使用"跨歌单出现次数"作为歌曲热度的替代指标</p>
-                <p>• 一首歌出现在越多歌单中，说明越受欢迎，这是更有意义的热度衡量方式</p>
+                <h3>数据特点</h3>
+                <p>本报告采用"跨歌单出现次数"作为歌曲热度的补充指标。</p>
+                <p>统计方法：计算每首歌在多少个不同歌单中出现，出现次数越多说明该歌曲越受欢迎。</p>
+                <p>这个指标能够反映歌曲在用户歌单中的流行程度，是衡量歌曲受欢迎度的有效方式。</p>
+                
+                <h3>使用说明</h3>
+                <p>• 点击顶部导航按钮切换图表</p>
+                <p>• 支持键盘左右箭头键切换</p>
+                <p>• 图表支持缩放和数据查看</p>
             </div>
         </div>
         '''

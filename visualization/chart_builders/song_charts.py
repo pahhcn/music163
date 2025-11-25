@@ -310,10 +310,7 @@ class SongChartsBuilder(BaseChartBuilder):
                         axislabel_opts=opts.LabelOpts(font_size=11, rotate=15)
                     ),
                     yaxis_opts=opts.AxisOpts(name="歌曲数量"),
-                    tooltip_opts=opts.TooltipOpts(
-                        trigger="axis",
-                        formatter="{b}<br/>歌曲数: {c}"
-                    )
+                    tooltip_opts=opts.TooltipOpts(is_show=False)
                 )
             )
         except Exception as e:
