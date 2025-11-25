@@ -12,21 +12,21 @@ class SongChartsBuilder(BaseChartBuilder):
     """歌曲图表构建器"""
     
     def create_top_songs_bar(self, top_n: int = 30):
-        """创建TOP热门歌曲柱状图"""
+        """创建TOP热门歌曲柱状图（使用跨歌单出现次数）"""
         try:
-            songs = self.db.get_top_songs(top_n, 'popularity')
+            songs = self.db.get_songs_with_cross_playlist_count(top_n)
             if not songs:
                 return self._create_empty_chart("热门歌曲排行", "暂无歌曲数据，请先爬取")
             
             names = [s['song_name'][:18] + '...' if len(s['song_name']) > 18 
                     else s['song_name'] for s in songs]
-            values = [s.get('popularity', 0) for s in songs]
+            values = [s.get('cross_playlist_count', 0) for s in songs]
             
             return (
                 Bar(init_opts=opts.InitOpts(theme=self.theme, width="100%", height="650px"))
                 .add_xaxis(names)
                 .add_yaxis(
-                    "热度值",
+                    "出现次数",
                     values,
                     label_opts=opts.LabelOpts(is_show=True, position="top", font_size=10),
                     itemstyle_opts=opts.ItemStyleOpts(color=self.colors[0])
@@ -34,13 +34,13 @@ class SongChartsBuilder(BaseChartBuilder):
                 .set_global_opts(
                     title_opts=opts.TitleOpts(
                         title=f"🎵 TOP{top_n} 热门歌曲排行",
-                        subtitle="按热度值排序",
+                        subtitle="按跨歌单出现次数排序 | 出现次数越多说明越受欢迎",
                         title_textstyle_opts=opts.TextStyleOpts(font_size=22, font_weight="bold")
                     ),
                     xaxis_opts=opts.AxisOpts(
                         axislabel_opts=opts.LabelOpts(rotate=45, interval=0, font_size=10)
                     ),
-                    yaxis_opts=opts.AxisOpts(name="热度值"),
+                    yaxis_opts=opts.AxisOpts(name="出现次数（个歌单）"),
                     tooltip_opts=opts.TooltipOpts(is_show=False),
                     datazoom_opts=[opts.DataZoomOpts(type_="slider", range_end=60)]
                 )
@@ -175,83 +175,116 @@ class SongChartsBuilder(BaseChartBuilder):
             logger.error(f"创建跨歌单图表失败: {e}")
             return None
     
-    def create_album_scatter(self, top_n: int = 100):
-        """创建专辑热度散点图"""
+    def create_album_scatter(self, top_n: int = 30):
+        """创建专辑热度分析图（现代化柱状图）"""
         try:
-            songs = self.db.get_all_songs()
-            if not songs:
-                return self._create_empty_chart("专辑热度分析", "暂无歌曲数据")
-            
-            import pandas as pd
-            df = pd.DataFrame(songs)
-            df = df[df['album'].notna() & (df['album'] != '')]
-            
-            if df.empty:
+            album_stats = self.db.get_album_stats_with_cross_count(top_n)
+            if not album_stats:
                 return self._create_empty_chart("专辑热度分析", "暂无专辑数据")
             
-            album_stats = df.groupby('album').agg({
-                'song_id': 'count',
-                'popularity': 'mean'
-            }).reset_index()
-            album_stats.columns = ['album', 'song_count', 'avg_popularity']
-            album_stats = album_stats.sort_values('avg_popularity', ascending=False).head(top_n)
+            if not album_stats:
+                return self._create_empty_chart("专辑热度分析", "数据不足")
             
-            # 准备数据，包含专辑名称
-            data = [[row['song_count'], row['avg_popularity'], row['album'][:12]] 
-                    for _, row in album_stats.iterrows()]
+            # 准备数据
+            album_names = []
+            song_counts = []
+            cross_counts = []
             
-            if not data:
-                return self._create_empty_chart("专辑热度分析", f"数据不足以生成TOP{top_n}专辑图表")
+            for album in album_stats:
+                # 截断专辑名，添加歌手信息
+                album_display = album['album'][:15]
+                if len(album['album']) > 15:
+                    album_display += '...'
+                album_display += f"\n({album['artist'][:8]})"
+                
+                album_names.append(album_display)
+                song_counts.append(album['song_count'])
+                cross_counts.append(round(album['total_cross_count'], 0))
             
             return (
-                Scatter(init_opts=opts.InitOpts(theme=self.theme, width="100%", height="650px"))
-                .add_xaxis([d[0] for d in data])
+                Bar(init_opts=opts.InitOpts(theme=self.theme, width="100%", height="650px"))
+                .add_xaxis(album_names)
                 .add_yaxis(
-                    "专辑",
-                    [{'value': d[1], 'name': d[2]} for d in data],
-                    symbol_size=10,
-                    label_opts=opts.LabelOpts(
-                        is_show=True,
-                        position="right",
-                        font_size=8,
-                        color='#333'
+                    "收录歌曲数",
+                    song_counts,
+                    label_opts=opts.LabelOpts(is_show=True, position="top", font_size=9),
+                    itemstyle_opts=opts.ItemStyleOpts(
+                        color='#667eea',
+                        opacity=0.8
                     ),
-                    itemstyle_opts=opts.ItemStyleOpts(color='#FF6B6B', opacity=0.7)
+                    stack="stack1"
+                )
+                .add_yaxis(
+                    "总出现次数",
+                    cross_counts,
+                    label_opts=opts.LabelOpts(is_show=True, position="top", font_size=9),
+                    itemstyle_opts=opts.ItemStyleOpts(
+                        color='#f093fb',
+                        opacity=0.8
+                    ),
+                    yaxis_index=1
+                )
+                .extend_axis(
+                    yaxis=opts.AxisOpts(
+                        name="总出现次数",
+                        type_="value",
+                        position="right",
+                        axislabel_opts=opts.LabelOpts(formatter="{value}次")
+                    )
                 )
                 .set_global_opts(
                     title_opts=opts.TitleOpts(
-                        title=f"💿 专辑热度分析 TOP{top_n}",
-                        subtitle="横轴: 歌曲数量 | 纵轴: 平均热度 | 标签: 专辑名",
-                        title_textstyle_opts=opts.TextStyleOpts(font_size=22, font_weight="bold")
+                        title=f"💿 热门专辑分析 TOP{top_n}",
+                        subtitle="左轴: 专辑收录歌曲数（蓝色） | 右轴: 专辑歌曲总出现次数（粉色）\n总出现次数越高说明专辑越受欢迎",
+                        title_textstyle_opts=opts.TextStyleOpts(font_size=20, font_weight="bold"),
+                        subtitle_textstyle_opts=opts.TextStyleOpts(font_size=10, color="#666"),
+                        pos_left="center",
+                        pos_top="2%"
                     ),
-                    xaxis_opts=opts.AxisOpts(name="歌曲数量", type_="value"),
-                    yaxis_opts=opts.AxisOpts(name="平均热度", type_="value"),
+                    xaxis_opts=opts.AxisOpts(
+                        axislabel_opts=opts.LabelOpts(rotate=45, interval=0, font_size=9)
+                    ),
+                    yaxis_opts=opts.AxisOpts(
+                        name="收录歌曲数",
+                        type_="value",
+                        position="left",
+                        axislabel_opts=opts.LabelOpts(formatter="{value}首")
+                    ),
                     tooltip_opts=opts.TooltipOpts(is_show=False),
-                    visualmap_opts=opts.VisualMapOpts(
-                        type_="size", max_=max([d[0] for d in data]) if data else 10,
-                        min_=min([d[0] for d in data]) if data else 1, dimension=0
-                    )
+                    legend_opts=opts.LegendOpts(
+                        pos_top="12%",
+                        pos_left="center"
+                    ),
+                    datazoom_opts=[opts.DataZoomOpts(type_="slider", range_end=60)]
                 )
             )
         except Exception as e:
-            logger.error(f"创建专辑散点图失败: {e}")
+            logger.error(f"创建专辑图表失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def create_popularity_distribution_bar(self):
-        """创建歌曲热度分布柱状图"""
+        """创建歌曲热度分布柱状图（基于跨歌单次数）"""
         try:
+            # 获取所有歌曲的跨歌单统计
             songs = self.db.get_all_songs()
             if not songs:
                 return self._create_empty_chart("热度分布", "暂无歌曲数据")
             
             import pandas as pd
+            
+            # 计算每首歌的跨歌单次数
             df = pd.DataFrame(songs)
+            cross_counts = df.groupby('song_id')['playlist_id'].nunique().reset_index()
+            cross_counts.columns = ['song_id', 'cross_count']
             
-            bins = [0, 20, 40, 60, 80, 100]
-            labels = ['低热度(0-20)', '中低(21-40)', '中等(41-60)', '中高(61-80)', '高热度(81-100)']
-            df['range'] = pd.cut(df['popularity'], bins=bins, labels=labels, include_lowest=True)
+            # 定义热度区间（基于跨歌单次数）
+            bins = [0, 1, 2, 3, 5, 100]
+            labels = ['仅1个歌单', '2个歌单', '3个歌单', '4-5个歌单', '6个以上歌单']
+            cross_counts['range'] = pd.cut(cross_counts['cross_count'], bins=bins, labels=labels, include_lowest=True)
             
-            counts = df['range'].value_counts().sort_index()
+            counts = cross_counts['range'].value_counts().sort_index()
             categories = counts.index.tolist()
             values = counts.values.tolist()
             
@@ -262,62 +295,80 @@ class SongChartsBuilder(BaseChartBuilder):
                     "歌曲数量",
                     values,
                     label_opts=opts.LabelOpts(is_show=True, position="top", font_size=12),
-                    itemstyle_opts=opts.ItemStyleOpts(color=self.colors[5])
+                    itemstyle_opts=opts.ItemStyleOpts(
+                        color='#667eea',
+                        opacity=0.8
+                    )
                 )
                 .set_global_opts(
                     title_opts=opts.TitleOpts(
                         title="📊 歌曲热度分布",
-                        subtitle=f"总计 {len(df)} 首歌曲",
+                        subtitle=f"总计 {len(cross_counts)} 首唯一歌曲 | 按跨歌单出现次数统计",
                         title_textstyle_opts=opts.TextStyleOpts(font_size=22, font_weight="bold")
                     ),
-                    xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(font_size=12)),
+                    xaxis_opts=opts.AxisOpts(
+                        axislabel_opts=opts.LabelOpts(font_size=11, rotate=15)
+                    ),
                     yaxis_opts=opts.AxisOpts(name="歌曲数量"),
-                    tooltip_opts=opts.TooltipOpts(is_show=False)
+                    tooltip_opts=opts.TooltipOpts(
+                        trigger="axis",
+                        formatter="{b}<br/>歌曲数: {c}"
+                    )
                 )
             )
         except Exception as e:
             logger.error(f"创建热度分布图失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def create_artist_radar(self, top_n: int = 8):
-        """创建TOP歌手雷达图"""
+        """创建TOP歌手综合能力雷达图（优化版）"""
         try:
-            songs = self.db.get_all_songs()
-            if not songs:
+            artist_stats = self.db.get_artist_comprehensive_stats(top_n)
+            if not artist_stats:
                 return self._create_empty_chart("歌手能力雷达", "暂无歌曲数据")
             
             import pandas as pd
-            df = pd.DataFrame(songs)
+            import numpy as np
             
-            artist_stats = df.groupby('artist').agg({
-                'song_id': 'count',
-                'popularity': ['mean', 'max'],
-                'duration': 'mean'
-            }).reset_index()
-            artist_stats.columns = ['artist', 'song_count', 'avg_pop', 'max_pop', 'avg_dur']
-            artist_stats = artist_stats.sort_values('song_count', ascending=False).head(top_n)
+            df = pd.DataFrame(artist_stats)
             
-            # 简单归一化到0-100
-            for col in ['song_count', 'avg_pop', 'max_pop', 'avg_dur']:
-                min_val, max_val = artist_stats[col].min(), artist_stats[col].max()
+            # 使用对数归一化处理数量类指标
+            for col in ['song_count', 'avg_cross_count', 'max_cross_count']:
+                values = df[col].values
+                log_values = np.log1p(values)  # log(1+x)
+                min_val, max_val = log_values.min(), log_values.max()
                 if max_val > min_val:
-                    artist_stats[col] = ((artist_stats[col] - min_val) / (max_val - min_val)) * 100
+                    df[col + '_norm'] = ((log_values - min_val) / (max_val - min_val)) * 100
                 else:
-                    artist_stats[col] = 50
+                    df[col + '_norm'] = 50
+            
+            # 时长范围归一化（作品多样性）
+            values = df['duration_range'].values
+            min_val, max_val = values.min(), values.max()
+            if max_val > min_val:
+                df['diversity_norm'] = ((values - min_val) / (max_val - min_val)) * 100
+            else:
+                df['diversity_norm'] = 50
             
             indicators = [
-                {"name": "歌曲数量", "max": 100},
-                {"name": "平均热度", "max": 100},
-                {"name": "最高热度", "max": 100},
-                {"name": "平均时长", "max": 100}
+                {"name": "作品量", "max": 100},
+                {"name": "受欢迎度", "max": 100},
+                {"name": "爆款能力", "max": 100},
+                {"name": "作品多样性", "max": 100}
             ]
             
             colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F']
             radar_data = []
-            for i, (_, row) in enumerate(artist_stats.iterrows()):
+            for i, (_, row) in enumerate(df.iterrows()):
                 radar_data.append({
-                    "value": [round(row['song_count'], 1), round(row['avg_pop'], 1),
-                             round(row['max_pop'], 1), round(row['avg_dur'], 1)],
+                    "value": [
+                        round(row['song_count_norm'], 1),
+                        round(row['avg_cross_count_norm'], 1),
+                        round(row['max_cross_count_norm'], 1),
+                        round(row['diversity_norm'], 1)
+                    ],
                     "name": row['artist'][:10],
                     "itemStyle": {"color": colors[i % len(colors)]}
                 })
@@ -328,22 +379,34 @@ class SongChartsBuilder(BaseChartBuilder):
                     schema=indicators,
                     shape="polygon",
                     center=["50%", "58%"],
-                    radius="65%"
+                    radius="65%",
+                    splitarea_opt=opts.SplitAreaOpts(
+                        is_show=True,
+                        areastyle_opts=opts.AreaStyleOpts(opacity=0.1)
+                    )
                 )
-                .add("", radar_data, areastyle_opts=opts.AreaStyleOpts(opacity=0.2))
+                .add("", radar_data, areastyle_opts=opts.AreaStyleOpts(opacity=0.25))
                 .set_global_opts(
                     title_opts=opts.TitleOpts(
                         title=f"🌟 TOP{top_n} 歌手综合能力雷达图",
-                        subtitle="四个维度对比：歌曲数量(作品量) | 平均热度(受欢迎度) | 最高热度(爆款能力) | 平均时长(作品风格)\n数值为归一化后的相对评分(0-100)，数值越大表示该维度表现越好",
-                        title_textstyle_opts=opts.TextStyleOpts(font_size=22, font_weight="bold"),
-                        subtitle_textstyle_opts=opts.TextStyleOpts(font_size=12, color="#666"),
+                        subtitle="四个维度：作品量（产出能力）| 受欢迎度（传播广度）| 爆款能力（制造爆款）| 作品多样性（风格多样）",
+                        title_textstyle_opts=opts.TextStyleOpts(font_size=20, font_weight="bold"),
+                        subtitle_textstyle_opts=opts.TextStyleOpts(font_size=10, color="#666"),
                         pos_left="center",
                         pos_top="2%"
                     ),
-                    legend_opts=opts.LegendOpts(pos_top="15%", pos_left="center", orient="horizontal"),
+                    legend_opts=opts.LegendOpts(
+                        pos_top="10%",
+                        pos_left="center",
+                        orient="horizontal",
+                        item_width=25,
+                        item_height=14
+                    ),
                     tooltip_opts=opts.TooltipOpts(is_show=False)
                 )
             )
         except Exception as e:
             logger.error(f"创建雷达图失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None

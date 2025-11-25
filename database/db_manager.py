@@ -497,6 +497,155 @@ class DatabaseManager:
             logger.error(f"清空数据失败: {e}")
             self.conn.rollback()
     
+    def get_songs_with_cross_playlist_count(self, top_n: int = 30) -> List[Dict[str, Any]]:
+        """
+        获取歌曲及其跨歌单出现次数（用于替代无意义的popularity）
+        :param top_n: TOP N
+        :return: 歌曲列表，包含跨歌单次数
+        """
+        try:
+            query = """
+                SELECT 
+                    song_id,
+                    song_name,
+                    artist,
+                    album,
+                    duration,
+                    duration_format,
+                    COUNT(DISTINCT playlist_id) as cross_playlist_count,
+                    AVG(position) as avg_position
+                FROM songs
+                GROUP BY song_id, song_name, artist, album, duration, duration_format
+                ORDER BY cross_playlist_count DESC, avg_position ASC
+                LIMIT ?
+            """
+            
+            self.cursor.execute(query, (top_n,))
+            rows = self.cursor.fetchall()
+            result = [dict(row) for row in rows]
+            
+            logger.info(f"获取TOP {top_n} 跨歌单热门歌曲")
+            return result
+            
+        except Exception as e:
+            logger.error(f"获取跨歌单歌曲失败: {e}")
+            return []
+    
+    def get_album_stats_with_cross_count(self, top_n: int = 30) -> List[Dict[str, Any]]:
+        """
+        获取专辑统计（使用跨歌单次数替代热度）
+        :param top_n: TOP N
+        :return: 专辑统计列表
+        """
+        try:
+            query = """
+                SELECT 
+                    album,
+                    artist,
+                    COUNT(DISTINCT song_id) as song_count,
+                    AVG(cross_count) as avg_cross_count,
+                    SUM(cross_count) as total_cross_count
+                FROM (
+                    SELECT 
+                        song_id,
+                        album,
+                        artist,
+                        COUNT(DISTINCT playlist_id) as cross_count
+                    FROM songs
+                    WHERE album IS NOT NULL AND album != ''
+                    GROUP BY song_id, album, artist
+                )
+                GROUP BY album, artist
+                HAVING song_count >= 2
+                ORDER BY total_cross_count DESC
+                LIMIT ?
+            """
+            
+            self.cursor.execute(query, (top_n,))
+            rows = self.cursor.fetchall()
+            result = [dict(row) for row in rows]
+            
+            logger.info(f"获取TOP {top_n} 热门专辑")
+            return result
+            
+        except Exception as e:
+            logger.error(f"获取专辑统计失败: {e}")
+            return []
+    
+    def get_artist_comprehensive_stats(self, top_n: int = 8) -> List[Dict[str, Any]]:
+        """
+        获取歌手综合统计（用于雷达图）
+        :param top_n: TOP N
+        :return: 歌手统计列表
+        """
+        try:
+            query = """
+                SELECT 
+                    artist,
+                    COUNT(DISTINCT song_id) as song_count,
+                    AVG(cross_count) as avg_cross_count,
+                    MAX(cross_count) as max_cross_count,
+                    AVG(duration) as avg_duration,
+                    (MAX(duration) - MIN(duration)) as duration_range
+                FROM (
+                    SELECT 
+                        song_id,
+                        artist,
+                        duration,
+                        COUNT(DISTINCT playlist_id) as cross_count
+                    FROM songs
+                    WHERE artist IS NOT NULL AND artist != ''
+                    GROUP BY song_id, artist, duration
+                )
+                GROUP BY artist
+                HAVING song_count >= 3
+                ORDER BY song_count DESC
+                LIMIT ?
+            """
+            
+            self.cursor.execute(query, (top_n,))
+            rows = self.cursor.fetchall()
+            result = [dict(row) for row in rows]
+            
+            logger.info(f"获取TOP {top_n} 歌手综合统计")
+            return result
+            
+        except Exception as e:
+            logger.error(f"获取歌手统计失败: {e}")
+            return []
+    
+    def get_playlist_scale_distribution(self) -> Dict[str, int]:
+        """获取歌单规模分布"""
+        try:
+            self.cursor.execute("""
+                SELECT 
+                    CASE 
+                        WHEN track_count <= 20 THEN '小型(≤20首)'
+                        WHEN track_count <= 50 THEN '中型(21-50首)'
+                        WHEN track_count <= 100 THEN '大型(51-100首)'
+                        ELSE '超大型(>100首)'
+                    END as scale,
+                    COUNT(*) as count
+                FROM playlists
+                GROUP BY scale
+                ORDER BY 
+                    CASE scale
+                        WHEN '小型(≤20首)' THEN 1
+                        WHEN '中型(21-50首)' THEN 2
+                        WHEN '大型(51-100首)' THEN 3
+                        ELSE 4
+                    END
+            """)
+            rows = self.cursor.fetchall()
+            result = {row['scale']: row['count'] for row in rows}
+            
+            logger.info(f"获取歌单规模分布")
+            return result
+            
+        except Exception as e:
+            logger.error(f"获取歌单规模分布失败: {e}")
+            return {}
+    
     def close(self):
         """关闭数据库连接"""
         if self.conn:

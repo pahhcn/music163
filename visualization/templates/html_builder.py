@@ -684,7 +684,7 @@ class ModernHTMLBuilder:
             for i in range(len(nav_items))
         ])
         
-        # 构建概览页面
+        # 构建概览页面（包含数据可视化）
         overview_html = f'''
         <div class="chart-card">
             <div class="chart-header">
@@ -692,21 +692,32 @@ class ModernHTMLBuilder:
                 <h3>数据概览</h3>
             </div>
             <div class="overview-content">
-                <h3>📊 报告说明</h3>
+                <h3>📊 数据摘要</h3>
                 <p>• 本报告基于网易云音乐热门歌单数据生成</p>
-                <p>• 共采集 <strong>{stats.get('total_playlists', 0):,}</strong> 个歌单，<strong>{stats.get('total_song_records', 0):,}</strong> 首歌曲</p>
-                <p>• 包含 <strong>{stats.get('unique_songs', 0):,}</strong> 首唯一歌曲，<strong>{stats.get('total_artists', 0):,}</strong> 位歌手</p>
-                <p>• 数据维度包括：播放量、收藏数、标签、创建者、歌曲热度等</p>
+                <p>• 共采集 <strong>{stats.get('total_playlists', 0):,}</strong> 个歌单，<strong>{stats.get('total_song_records', 0):,}</strong> 首歌曲记录</p>
+                <p>• 包含 <strong>{stats.get('unique_songs', 0):,}</strong> 首唯一歌曲，<strong>{stats.get('total_artists', 0):,}</strong> 位歌手，<strong>{stats.get('total_albums', 0):,}</strong> 张专辑</p>
+                <p>• 总播放量: <strong>{stats.get('total_playlist_play_count', 0) / 100000000:.2f}</strong> 亿次，总收藏数: <strong>{stats.get('total_playlist_subscribe_count', 0) / 10000000:.2f}</strong> 千万</p>
                 
                 <h3>📈 图表导航</h3>
-                <p><strong>歌单分析：</strong>包含播放排行、收藏排行、标签分布、创建者贡献等维度</p>
-                <p><strong>歌曲分析：</strong>包含热门歌曲、歌手排行、时长分布、热度分析等维度</p>
+                <p><strong>歌单分析（8个图表）：</strong>播放排行、收藏排行、对比分析、标签分布、创建者排行、关系分析、规模分布、标签词云</p>
+                <p><strong>歌曲分析（7个图表）：</strong>热门歌曲、歌手排行、时长分布、跨歌单热歌、专辑热度、热度分布、歌手雷达</p>
+                
+                <h3>🔍 关键发现</h3>
+                <p>• 平均每个歌单播放量: <strong>{stats.get('avg_playlist_play_count', 0):,.0f}</strong> 次</p>
+                <p>• 平均每个歌单收藏数: <strong>{stats.get('avg_subscribed_count', 0):,.0f}</strong> 人</p>
+                <p>• 平均每个歌单歌曲数: <strong>{stats.get('avg_track_count', 0):.0f}</strong> 首</p>
+                <p>• 最热门歌单播放量: <strong>{stats.get('max_playlist_play_count', 0):,}</strong> 次</p>
                 
                 <h3>💡 使用提示</h3>
                 <p>• 使用顶部导航按钮切换不同图表</p>
                 <p>• 所有图表支持鼠标悬停查看详细数据</p>
                 <p>• 支持键盘左右箭头键快速切换页面</p>
                 <p>• 建议使用Chrome、Edge等现代浏览器浏览</p>
+                
+                <h3>⚠️ 数据说明</h3>
+                <p>• 由于网易云API限制，歌曲的"热度值"字段缺乏区分度（多数为100）</p>
+                <p>• 因此本报告使用"跨歌单出现次数"作为歌曲热度的替代指标</p>
+                <p>• 一首歌出现在越多歌单中，说明越受欢迎，这是更有意义的热度衡量方式</p>
             </div>
         </div>
         '''

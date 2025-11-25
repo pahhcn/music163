@@ -185,7 +185,7 @@ class ModernReportGenerator:
                 {
                     'name': '专辑热度',
                     'icon': '💿',
-                    'func': lambda: self.song_builder.create_album_scatter(100)
+                    'func': lambda: self.song_builder.create_album_scatter(30)
                 },
                 {
                     'name': '热度分布',
@@ -275,12 +275,6 @@ class ModernReportGenerator:
         except Exception as e:
             logger.error(f"获取报告摘要失败: {e}")
             return {}
-
-
-# 向后兼容：保持原有的 ChartsGenerator 类名
-class ChartsGenerator(ModernReportGenerator):
-    """向后兼容的类名"""
-    pass
 
 
 if __name__ == '__main__':
